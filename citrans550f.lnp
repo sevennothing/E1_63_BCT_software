@@ -1,0 +1,4 @@
+"GF2488-01F1-E1-RST.obj",
+".\NewLib9.LIB" 
+TO "citrans550f" 
+RAMSIZE(256) 
