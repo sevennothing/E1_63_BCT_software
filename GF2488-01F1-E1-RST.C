@@ -156,7 +156,7 @@ void GetData()
 	almnumber=0;
  	sw1021Chip = SW1021;
 	for(i=0;i<(LINENUM-1);i++)
-	{
+	{          
 		
 		if(g_ucState[78+i]==0)
 		{
@@ -185,7 +185,7 @@ void GetData()
 			tmp = XBYTE[sw1021Chip+PORT_E1_ALARM_REG(n)];
 			PPIAIS = tmp & E1AIS;
 			PPILOS = tmp & E1LOS;
-		
+		/*
 			tmp = XBYTE[sw1021Chip+TU12_J2_STATUS_REG2(A_BUS_BASE, n)];
 			TULOP = tmp & LOPI;
 			TUAIS = tmp & AISI;
@@ -195,9 +195,9 @@ void GetData()
 			LPRDI = tmp & RDII;
 			LPRFI = tmp & RFII;
 			LPUNEQ = tmp & UNEQI;
+		*/	
 			
 			
-			/*
 			tmp = XBYTE[sw1021Chip+TU12_J2_STATUS_REG(A_BUS_BASE, n)];
 			TULOP = tmp & LOPV;
 			TUAIS = tmp & AISV;
@@ -207,10 +207,13 @@ void GetData()
 			LPRDI = tmp & RDIV;
 			LPRFI = tmp & RFIV;
 			LPUNEQ = tmp & UNEQV;
-			*/
 			
-			g_liError1s[i].ulDatlong+=XBYTE[sw1021Chip+BIPERR_COUNTER_REG(A_BUS_BASE, n)];   // BIP错误计数值
-			LPFEBE = XBYTE[sw1021Chip+REI_COUNTER_REG(A_BUS_BASE, n)]; //REI(FEBE)计数值
+			//must be write BIPERR_COUNTER_REG ; see manual
+			XBYTE[sw1021Chip+BIPERR_COUNTER_REG(A_BUS_BASE, n)] = 0x00;
+			g_liError1s[i].ulDatlong += XBYTE[sw1021Chip+BIPERR_COUNTER_REG(A_BUS_BASE, n)] + (XBYTE[sw1021Chip+BIPERR_COUNTER_REG(A_BUS_BASE, n) + 1] * 256);   // BIP错误计数值
+			//must be write REI_COUNTER_REG ; see manual
+			XBYTE[sw1021Chip+REI_COUNTER_REG(A_BUS_BASE, n)] = 0x00;
+			LPFEBE = XBYTE[sw1021Chip+REI_COUNTER_REG(A_BUS_BASE, n)] + (XBYTE[sw1021Chip+REI_COUNTER_REG(A_BUS_BASE, n) + 1] * 256); //REI(FEBE)计数值
 			
 			tmp = XBYTE[sw1021Chip + PORT_TEST_REG(n)];
 						
@@ -312,7 +315,7 @@ void GetData()
 		// 获取N2 和 K4 值
 		//TODO: get N2
 		//g_ucState[204+2*i]=XBYTE[WGS21891+0x0100+0x10*n+0x0C]; 
-		g_ucState[205+2*i]=XBYTE[sw1021Chip + TX_K4_REG(A_BUS_BASE,n)];
+		g_ucState[205+2*i]=XBYTE[sw1021Chip + RX_K4_REG(A_BUS_BASE,n)];
 		
 		
 		mi=i/8;
@@ -581,7 +584,7 @@ void ConfSet(void)
 			g_ucState[141+i]=1;
 		}else{  // 支路打开
 			XBYTE[sw1021Chip + PORT_CFG_REG(n)] = A_UP_DOWN | RnEN;
-			XBYTE[sw1021Chip + TX_V5_REG(A_BUS_BASE,n)] = REI_CNF;
+			XBYTE[sw1021Chip + TX_V5_REG(A_BUS_BASE,n)] = REI_CNF | (0x02 << 1);  // 注意信号标记值得配置
 			if(g_ucState[78+i]==0)//刚打开支路开关时插伪随机码
 			{
 				//TODO: 启动误码计数器
@@ -1007,8 +1010,8 @@ void InitioSw1021()
 		// SW1021只支持19.44Mbit/s 的传输速率
 		
 		
-		XBYTE[SW1021_CHIP_ADDR(i) + BUS_CTRL_REG(A_BUS_BASE)] = UPBUS_TIMER;  // 上行总线定时
-		XBYTE[SW1021_CHIP_ADDR(i) + BUS_CTRL_REG(B_BUS_BASE)] = UPBUS_TIMER;  // 上行总线定时
+		XBYTE[SW1021_CHIP_ADDR(i) + BUS_CTRL_REG(A_BUS_BASE)] = UPBUS_TIMER | 0x02;  // 上行总线定时  + V5 期望值 0x02
+		XBYTE[SW1021_CHIP_ADDR(i) + BUS_CTRL_REG(B_BUS_BASE)] = UPBUS_TIMER | 0x02;  // 上行总线定时
 		
 		// 上下话数据总线均选择偶校验
 		XBYTE[SW1021_CHIP_ADDR(i) + SDH_CTRL_REG(A_BUS_BASE)] = UP_DELAY_2;
@@ -1032,7 +1035,7 @@ void InitioSw1021()
 			//TODO: 不启动随机码测试； 启动误码计数
 			
 			//TODO: 上话V5-TX2 设置 LP-REI
-			XBYTE[SW1021_CHIP_ADDR(i) + TX_V5_REG(A_BUS_BASE,j)] = REI_CNF;
+			XBYTE[SW1021_CHIP_ADDR(i) + TX_V5_REG(A_BUS_BASE,j)] = REI_CNF | (0x02 << 1);
 			
 			//TODO： 上下话通道号编码
 			XBYTE[SW1021_CHIP_ADDR(i) + RXTU12_SLOT_REG(A_BUS_BASE,j)] = slot[i*21+j];	
@@ -1104,12 +1107,12 @@ static int checkSW1021Init(void)
 	for(i=0;i<CHIPS_ON_BOARD;i++)
 	{
 		reg = XBYTE[SW1021_CHIP_ADDR(i) + BUS_CTRL_REG(A_BUS_BASE)];
-		if( (reg & UPBUS_TIMER) != UPBUS_TIMER){
+		if( (reg & (UPBUS_TIMER | 0x02)) != (UPBUS_TIMER | 0x02)){
 			ret = -1;
 			break;
 		}
 		reg = XBYTE[SW1021_CHIP_ADDR(i) + BUS_CTRL_REG(B_BUS_BASE)];
-		if( (reg & UPBUS_TIMER) != UPBUS_TIMER){
+		if( (reg & (UPBUS_TIMER | 0x02)) != (UPBUS_TIMER | 0x02)){
 			ret = -1;
 			break;
 		}

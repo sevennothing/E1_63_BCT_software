@@ -190,9 +190,13 @@
 	#define RTIUI   (1 << 2)			/* 接收的J2 不稳定 */
 	#define UNEQI   (1 << 1)			/* */
 	#define PLMI   (1 << 0)			/* 标记适配告警 SLM ? */
-	
-#define BIPERR_COUNTER_REG(SUB,PID)  (((PID) * 0x20) + 0x2E + (0x20 * ((PID)/7)) + (SUB))
-#define REI_COUNTER_REG(SUB,PID)  (((PID) * 0x20) + 0x30 + (0x20 * ((PID)/7)) + (SUB))
+
+#define RX_K4_REG(SUB,PID)  (((PID) * 0x20) + 0x2C + (0x20 * ((PID)/7)) + (SUB))	
+
+
+#define BIPERR_COUNTER_REG(SUB,PID)  (((PID) * 0x20) + 0x2E + (0x20 * ((PID)/7)) + (SUB)) /* 16 位寄存器， 需要特殊操作，见手册  */
+
+#define REI_COUNTER_REG(SUB,PID)  (((PID) * 0x20) + 0x30 + (0x20 * ((PID)/7)) + (SUB))   /* 16 位寄存器， 需要特殊操作，见手册  */
 
 
 #endif
