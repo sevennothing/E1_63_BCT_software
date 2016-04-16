@@ -1,4 +1,4 @@
-C51 COMPILER V9.54   GF2488_01F1_E1_RST                                                    04/15/2016 18:54:06 PAGE 1   
+C51 COMPILER V9.54   GF2488_01F1_E1_RST                                                    04/16/2016 16:30:00 PAGE 1   
 
 
 C51 COMPILER V9.54, COMPILATION OF MODULE GF2488_01F1_E1_RST
@@ -27,1238 +27,1283 @@ line level    source
   17          **         »ò NewLib1.LIB for Mc68302
   18          ** °æ  ±¾£º1.0
   19          ********************************************************************/
-  20          #define UASNUM    63        //Òª¼ÆËãÎóÂëµÄÏßÂ·Êý63//
-  21          #define LINENUM   64        /*¸æ¾¯ÏßÂ·ÊýÎª64*/
-  22          #define ALMNUM      759     /*×Ü¹²63*ALMTYPENUM+3=759¸ö¸æ¾¯*/
-  23          #define PMNUM   441         /*×Ü¹²63*PMTYPENUM¸öÐÔÄÜ*/
-  24          #define ALMTYPENUM      15      /*15ÖÖ¸æ¾¯ÀàÐÍ*/
-  25          #define PMTYPENUM       7       /*7ÖÖÐÔÄÜÀàÐÍ*/
-  26          #define CONFLEN   2560  /*ÅäÖÃÊý¾Ý³¤¶ÈÎª2560*/
-  27          #define STATELEN  338   /*×´Ì¬Êý¾Ý³¤¶ÈÎª338*/
-  28          #define BOARDCODE 0x96  /*ÅÌ´úÂë*/
-  29          #define WGS21891A 0xB000
-  30          
-  31          #define SW1021  0xB000    //TODO£ºconfirm
-  32          
-  33          #define SW1021_CHIP_ADDR(num)  (SW1021 + 0x1000*(num))
-  34          //#define SW1021_CHIP_ADDR(num)  (0xD000)
-  35          #define CHIPS_ON_BOARD          3
-  36          
-  37          
-  38          
-  39          #include "commvar9.h"
-  40          #include "uasE63.h"
+  20          //#define  NEED_LP_RFI   /**  !!! µ¥ÅÌÆð²»À´ÁË  */
+  21          
+  22          #define UASNUM    63        //Òª¼ÆËãÎóÂëµÄÏßÂ·Êý63//
+  23          #define LINENUM   64        /*¸æ¾¯ÏßÂ·ÊýÎª64*/
+  24          #ifdef NEED_LP_RFI
+                #define ALMNUM      822     /*×Ü¹²63*(ALMTYPENUM-3)+3=759¸ö¸æ¾¯*/
+                #define ALMTYPENUM      16      /*16ÖÖ¸æ¾¯ÀàÐÍ*/
+              #else
+  28            #define ALMNUM      759     /*×Ü¹²63*(ALMTYPENUM-3)+3=759¸ö¸æ¾¯*/
+  29            #define ALMTYPENUM      15      /*15ÖÖ¸æ¾¯ÀàÐÍ*/
+  30          #endif
+  31          
+  32          #define PMNUM   441         /*×Ü¹²63*PMTYPENUM¸öÐÔÄÜ*/
+  33          
+  34          #define PMTYPENUM       7       /*7ÖÖÐÔÄÜÀàÐÍ*/
+  35          #define CONFLEN   2560  /*ÅäÖÃÊý¾Ý³¤¶ÈÎª2560*/
+  36          #define STATELEN  338   /*×´Ì¬Êý¾Ý³¤¶ÈÎª338*/
+  37          #define BOARDCODE 0x96  /*ÅÌ´úÂë*/
+  38          #define WGS21891A 0xB000
+  39          
+  40          #define SW1021  0xB000    //TODO£ºconfirm
   41          
-  42          #include "sw1021.h"
-  43          
-  44          char code SysName[]="GF2488-01F";
-  45          char code BoardName[]="E1-63A";
-  46          char code BoardSn[]="WKE2.170.609R1B";
-  47          char code SoftVer[]="R170609R1B/01F    ";
-  48          
-  49          char code PcbSn[]="WKE7.822.828R1B";
-  50          char code PcbTime[]="2004 05 02";
-  51          
-  52          char code BoardSoftVer[]="RP0100            ";
-  53          
-  54          char code SoftDate[]=__DATE__;
-C51 COMPILER V9.54   GF2488_01F1_E1_RST                                                    04/15/2016 18:54:06 PAGE 2   
+  42          #define SW1021_CHIP_ADDR(num)  (SW1021 + 0x1000*(num))
+  43          //#define SW1021_CHIP_ADDR(num)  (0xD000)
+  44          #define CHIPS_ON_BOARD          3
+  45          
+  46          
+  47          
+  48          #include "commvar9.h"
+  49          #include "uasE63.h"
+  50          
+  51          #include "sw1021.h"
+  52          
+  53          char code SysName[]="GF2488-01F";
+  54          char code BoardName[]="E1-63A";
+C51 COMPILER V9.54   GF2488_01F1_E1_RST                                                    04/16/2016 16:30:00 PAGE 2   
 
-  55          char code SoftTime[]=__TIME__;
-  56          
-  57          extern int sprintf(char *, const char *, ...);
-  58          
-  59          #define RSTB IO0
-  60          #define TUALMO IO2
-  61          #define TUXAB IO5 //TUXABÎªÖ÷±¸½»²æÊ±ÖÓÅÌXCUÓÐÐ§Ö¸Ê¾ÐÅºÅ,Ö÷ÓÃXCUÓÐÐ§Ê±TUXAB=0,±¸ÓÃXCUÓÐÐ§TUXAB=1
-  62          #define WP IO6     //E1-63AÅÌÔÚÕý³£²ÛÎ»Ê±WP=1,ÔÚ±£»¤²ÛÎ»Ê±WP=0//
-  63          #define TUSWTI IO7 //±¾ÅÌalmnumber´óÓÚÒ»¶¨ÖµÊ±,TUALMO=1,XCUÅÌÊÕµ½TUALMO=1Ê±,²úÉúTUSWTI=0//
-  64          #define P2V5 IO8
-  65          #define P5VI1 IO9
-  66          #define P5VI2 IO10
-  67          #define DZBI1 IO11
-  68          #define DZBI2 IO12
-  69          extern unsigned char g_AllClrFlag;
-  70          extern unsigned char g_LampEn;
-  71          unsigned int ulEsLimit,ulSesLimit;
-  72          //unsigned int WGS21891,wgs21891reg0[4],wgs21891reg1[4];
-  73          unsigned int sw1021Chip;
-  74          unsigned int N1000[63],BIP[63],BIP_2_1S[63],BIP_2_1000S[63];
-  75          unsigned char actnumber,almnumber,first_conf;
-  76          /*
-  77          code unsigned char slot[64]={1,22,43,4,25,46,7,28,49,10,31,52,13,34,55,16,37,58,19,40,61,2,23,44,5,26,
-  78              47,8,29,50,11,32,53,14,35,56,17,38,59,20,41,62,3,24,45,6,27,48,9,30,51,
-  79              12,33,54,15,36,57,18,39,60,21,42,63,0};
-  80              */
-  81          
-  82          code unsigned char slot[64]={0x00,0x20,0x40,0x01,0x21,0x41,0x02,
-  83                               0x22,0x42,0x03,0x23,0x43,0x04,0x24,
-  84                               0x44,0x05,0x25,0x45,0x06,0x26,0x46,
-  85          
-  86                               0x07,0x27,0x47,0x08,0x28,0x48,0x09,
-  87                               0x29,0x49,0x0a,0x2a,0x4a,0x0b,0x2b,
-  88                               0x4b,0x0c,0x2c,0x4c,0x0d,0x2d,0x4d,
+  55          char code BoardSn[]="WKE2.170.609R1B";
+  56          char code SoftVer[]="R170609R1B/01F    ";
+  57          
+  58          char code PcbSn[]="WKE7.822.828R1B";
+  59          char code PcbTime[]="2004 05 02";
+  60          
+  61          char code BoardSoftVer[]="RP0100            ";
+  62          
+  63          char code SoftDate[]=__DATE__;
+  64          char code SoftTime[]=__TIME__;
+  65          
+  66          extern int sprintf(char *, const char *, ...);
+  67          
+  68          #define RSTB IO0
+  69          #define TUALMO IO2
+  70          #define TUXAB IO5 //TUXABÎªÖ÷±¸½»²æÊ±ÖÓÅÌXCUÓÐÐ§Ö¸Ê¾ÐÅºÅ,Ö÷ÓÃXCUÓÐÐ§Ê±TUXAB=0,±¸ÓÃXCUÓÐÐ§TUXAB=1
+  71          #define WP IO6     //E1-63AÅÌÔÚÕý³£²ÛÎ»Ê±WP=1,ÔÚ±£»¤²ÛÎ»Ê±WP=0//
+  72          #define TUSWTI IO7 //±¾ÅÌalmnumber´óÓÚÒ»¶¨ÖµÊ±,TUALMO=1,XCUÅÌÊÕµ½TUALMO=1Ê±,²úÉúTUSWTI=0//
+  73          #define P2V5 IO8
+  74          #define P5VI1 IO9
+  75          #define P5VI2 IO10
+  76          #define DZBI1 IO11
+  77          #define DZBI2 IO12
+  78          extern unsigned char g_AllClrFlag;
+  79          extern unsigned char g_LampEn;
+  80          unsigned int ulEsLimit,ulSesLimit;
+  81          //unsigned int WGS21891,wgs21891reg0[4],wgs21891reg1[4];
+  82          unsigned int sw1021Chip;
+  83          unsigned int N1000[63],BIP[63],BIP_2_1S[63],BIP_2_1000S[63];
+  84          unsigned char actnumber,almnumber,first_conf;
+  85          /*
+  86          code unsigned char slot[64]={1,22,43,4,25,46,7,
+  87          28,49,10,31,52,13,34,
+  88          55,16,37,58,19,40,61,
   89          
-  90                               0x0e,0x2e,0x4e,0x0f,0x2f,0x4f,0x10,
-  91                               0x30,0x50,0x11,0x31,0x51,0x12,0x32,
-  92                               0x52,0x13,0x33,0x53,0x14,0x34,0x54,
-  93                               0
-  94                          };            
-  95          
-  96              
-  97          static void writeTxJ2(char chip, char witchJ2, char Slot, char j2, char busB)
-  98          {
-  99   1        int copOk = 0;
- 100   1        int busBase = A_BUS_BASE;
- 101   1        int i = 5;
- 102   1        if(busB)
- 103   1          busBase = B_BUS_BASE;
- 104   1        // write  Tx J2 data
- 105   1        XBYTE[SW1021_CHIP_ADDR(chip) + J2_TX_DATA_REG(busBase)] = j2;
- 106   1        XBYTE[SW1021_CHIP_ADDR(chip) + J2_TX_WHICH_REG(busBase)] = witchJ2;
- 107   1        XBYTE[SW1021_CHIP_ADDR(chip) + J2_TX_SLOT_REG(busBase)] = RW_SEL | Slot;
- 108   1        while(!copOk){
- 109   2          copOk = XBYTE[SW1021_CHIP_ADDR(chip) + J2_TX_RAM_STATUS_REG(busBase)] & 0x01;
- 110   2          i--;
- 111   2          if(i == 0)
- 112   2            break;
- 113   2          //Delay(1);
- 114   2        }
- 115   1      }
+  90          2,23,44,5,26,47,8,
+  91          29,50,11,32,53,14,35,
+  92          56,17,38,59,20,41,62,
+  93          
+  94          3,24,45,6,27,48,9,
+  95          30,51,12,33,54,15,36,
+  96          57,18,39,60,21,42,63,0};
+  97              */
+  98          /*
+  99          code unsigned char slot[64]={0x00,0x20,0x40,0x01,0x21,0x41,0x02,
+ 100                               0x22,0x42,0x03,0x23,0x43,0x04,0x24,
+ 101                               0x44,0x05,0x25,0x45,0x06,0x26,0x46,
+ 102          
+ 103                               0x07,0x27,0x47,0x08,0x28,0x48,0x09,
+ 104                               0x29,0x49,0x0a,0x2a,0x4a,0x0b,0x2b,
+ 105                               0x4b,0x0c,0x2c,0x4c,0x0d,0x2d,0x4d,
+ 106          
+ 107                               0x0e,0x2e,0x4e,0x0f,0x2f,0x4f,0x10,
+ 108                               0x30,0x50,0x11,0x31,0x51,0x12,0x32,
+ 109                               0x52,0x13,0x33,0x53,0x14,0x34,0x54,
+ 110                               0
+ 111                          };    
+ 112          */
+ 113          code unsigned char slot[64]={0x00,0x07,0x0e,0x01,0x08,0x0f,0x02,
+ 114                               0x09,0x10,0x03,0x0a,0x11,0x04,0x0b,
+ 115                               0x12,0x05,0x0c,0x13,0x06,0x0d,0x14,
  116          
-C51 COMPILER V9.54   GF2488_01F1_E1_RST                                                    04/15/2016 18:54:06 PAGE 3   
+C51 COMPILER V9.54   GF2488_01F1_E1_RST                                                    04/16/2016 16:30:00 PAGE 3   
 
- 117          static void writeExpectJ2(char chip, char witchJ2, char Slot, char j2, char busB)
- 118          {
- 119   1        int copOk = 0;
- 120   1        int busBase = A_BUS_BASE;
- 121   1        int i = 5;
- 122   1        if(busB) 
- 123   1          busBase = B_BUS_BASE;
- 124   1        // write  Tx J2 data
- 125   1        XBYTE[SW1021_CHIP_ADDR(chip) + J2_RX_DATA_REG(busBase)] = j2;
- 126   1        XBYTE[SW1021_CHIP_ADDR(chip) + J2_RX_J2TYPE_CTRL_REG(busBase)] = EXPECT_J2 |  witchJ2;
- 127   1        XBYTE[SW1021_CHIP_ADDR(chip) + J2_RX_CTRL_REG(busBase)] = RW_SEL | Slot;
- 128   1        while(!copOk){
- 129   2          copOk = XBYTE[SW1021_CHIP_ADDR(chip) + J2_RAM_STATUS_REG(busBase)] & READY;
- 130   2          i--;
- 131   2          if(i == 0)
- 132   2            break;
- 133   2          //Delay(1);
- 134   2        }
- 135   1      }
- 136          
- 137          /*****************************************************************
- 138          ** º¯ÊýÃû:GETDATA
- 139          ** Êä¡¡Èë: ÎÞ
- 140          ** Êä¡¡³ö: ÎÞ
- 141          ** ¹¦ÄÜÃèÊö£º²É¼¯µ¥ÅÌ¸æ¾¯ºÍÐÔÄÜ
- 142          ** È«¾Ö±äÁ¿£ºÎÞ
- 143          ** µ÷ÓÃÄ£¿é£ºÎÞ
- 144          ** ×÷¡¡Õß£ºÎÌÒæêÍ
- 145          ** ÈÕ¡¡ÆÚ£º2002.5.25
- 146          ** ÐÞ¡¡¸Ä£º
- 147          ** ÈÕ¡¡ÆÚ£º
- 148          ** °æ  ±¾£º1.0
- 149          ****************************************************************/
- 150          void GetData()          
- 151          {
- 152   1        unsigned char i,m,n,mi,ni,tmp,ADCLK,PPILOS,TULOP,LPSLM,LPTIM,LPTIU,LPRDI,LPRFI,LPUNEQ,TUAIS,PPIAIS,
- 153   1        LOOP,LOOPL,tv5;
- 154   1        unsigned int  LPFEBE,HDB3;
- 155   1        actnumber=0;
- 156   1        almnumber=0;
- 157   1        sw1021Chip = SW1021;
- 158   1        for(i=0;i<(LINENUM-1);i++)
- 159   1        {          
- 160   2          
- 161   2          if(g_ucState[78+i]==0)
- 162   2          {
- 163   3            g_ucLineMask[i]=1;
- 164   3            // ADCLK ¸æ¾¯ (A Â·ÏÂÐÐÊ±ÖÓ¸æ¾¯ )
- 165   3            ADCLK=XBYTE[sw1021Chip+E1_IF_STATUS_REG] & ADLOC; 
- 166   3      
- 167   3          }
- 168   2          else   
- 169   2          {
- 170   3            m=i/21;
- 171   3            n=i%21;
- 172   3            mi=i/8;
- 173   3            ni=i%8;
- 174   3            
- 175   3            sw1021Chip = SW1021_CHIP_ADDR(m);
- 176   3            
- 177   3            if(TULOP||TUAIS)
- 178   3              g_ucLofFlag[i]=1;      //ÓÐTULOP,TUAIS,PPILOS¸æ¾¯Ö®Ò»Ê±ÉÏ±¨UAS
-C51 COMPILER V9.54   GF2488_01F1_E1_RST                                                    04/15/2016 18:54:06 PAGE 4   
+ 117                               0x20,0x27,0x2e,0x21,0x28,0x2f,0x22,
+ 118                               0x29,0x30,0x23,0x2a,0x31,0x24,0x2b,
+ 119                               0x32,0x25,0x2c,0x33,0x26,0x2d,0x34,
+ 120          
+ 121                               0x40,0x47,0x4e,0x41,0x48,0x4f,0x42,
+ 122                               0x49,0x50,0x43,0x4a,0x51,0x44,0x4b,
+ 123                               0x52,0x45,0x4c,0x53,0x46,0x4d,0x54,
+ 124                               0
+ 125                          };
+ 126          
+ 127              
+ 128          static void writeTxJ2(char chip, char witchJ2, char Slot, char j2, char busB)
+ 129          {
+ 130   1        int copOk = 0;
+ 131   1        int busBase = A_BUS_BASE;
+ 132   1        int i = 5;
+ 133   1        if(busB)
+ 134   1          busBase = B_BUS_BASE;
+ 135   1        // write  Tx J2 data
+ 136   1        XBYTE[SW1021_CHIP_ADDR(chip) + J2_TX_DATA_REG(busBase)] = j2;
+ 137   1        XBYTE[SW1021_CHIP_ADDR(chip) + J2_TX_WHICH_REG(busBase)] = witchJ2;
+ 138   1        XBYTE[SW1021_CHIP_ADDR(chip) + J2_TX_SLOT_REG(busBase)] = RW_SEL | Slot;
+ 139   1        while(!copOk){
+ 140   2          copOk = XBYTE[SW1021_CHIP_ADDR(chip) + J2_TX_RAM_STATUS_REG(busBase)] & 0x01;
+ 141   2          i--;
+ 142   2          if(i == 0)
+ 143   2            break;
+ 144   2          //Delay(1);
+ 145   2        }
+ 146   1      }
+ 147          
+ 148          static void writeExpectJ2(char chip, char witchJ2, char Slot, char j2, char busB)
+ 149          {
+ 150   1        int copOk = 0;
+ 151   1        int busBase = A_BUS_BASE;
+ 152   1        int i = 5;
+ 153   1        if(busB) 
+ 154   1          busBase = B_BUS_BASE;
+ 155   1        // write  Tx J2 data
+ 156   1        XBYTE[SW1021_CHIP_ADDR(chip) + J2_RX_DATA_REG(busBase)] = j2;
+ 157   1        XBYTE[SW1021_CHIP_ADDR(chip) + J2_RX_J2TYPE_CTRL_REG(busBase)] = EXPECT_J2 |  witchJ2;
+ 158   1        XBYTE[SW1021_CHIP_ADDR(chip) + J2_RX_CTRL_REG(busBase)] = RW_SEL | Slot;
+ 159   1        while(!copOk){
+ 160   2          copOk = XBYTE[SW1021_CHIP_ADDR(chip) + J2_RAM_STATUS_REG(busBase)] & READY;
+ 161   2          i--;
+ 162   2          if(i == 0)
+ 163   2            break;
+ 164   2          //Delay(1);
+ 165   2        }
+ 166   1      }
+ 167          
+ 168          /*****************************************************************
+ 169          ** º¯ÊýÃû:GETDATA
+ 170          ** Êä¡¡Èë: ÎÞ
+ 171          ** Êä¡¡³ö: ÎÞ
+ 172          ** ¹¦ÄÜÃèÊö£º²É¼¯µ¥ÅÌ¸æ¾¯ºÍÐÔÄÜ
+ 173          ** È«¾Ö±äÁ¿£ºÎÞ
+ 174          ** µ÷ÓÃÄ£¿é£ºÎÞ
+ 175          ** ×÷¡¡Õß£ºÎÌÒæêÍ
+ 176          ** ÈÕ¡¡ÆÚ£º2002.5.25
+ 177          ** ÐÞ¡¡¸Ä£º
+ 178          ** ÈÕ¡¡ÆÚ£º
+C51 COMPILER V9.54   GF2488_01F1_E1_RST                                                    04/16/2016 16:30:00 PAGE 4   
 
- 179   3            else
- 180   3              g_ucLofFlag[i]=0;
- 181   3            
- 182   3            actnumber=actnumber+g_ucConfData[64+i];
- 183   3            
- 184   3            ADCLK = XBYTE[sw1021Chip+E1_IF_STATUS_REG] & ADLOC;
- 185   3            tmp = XBYTE[sw1021Chip+PORT_E1_ALARM_REG(n)];
- 186   3            PPIAIS = tmp & E1AIS;
- 187   3            PPILOS = tmp & E1LOS;
- 188   3          /*
- 189   3            tmp = XBYTE[sw1021Chip+TU12_J2_STATUS_REG2(A_BUS_BASE, n)];
- 190   3            TULOP = tmp & LOPI;
- 191   3            TUAIS = tmp & AISI;
- 192   3            LPSLM = tmp & PLMI;
- 193   3            LPTIM = tmp & RTIMI;
- 194   3            LPTIU = tmp & RTIUI;
- 195   3            LPRDI = tmp & RDII;
- 196   3            LPRFI = tmp & RFII;
- 197   3            LPUNEQ = tmp & UNEQI;
- 198   3          */  
- 199   3            
- 200   3            
- 201   3            tmp = XBYTE[sw1021Chip+TU12_J2_STATUS_REG(A_BUS_BASE, n)];
- 202   3            TULOP = tmp & LOPV;
- 203   3            TUAIS = tmp & AISV;
- 204   3            LPSLM = tmp & PLMV;
- 205   3            LPTIM = tmp & RTIMV;
- 206   3            LPTIU = tmp & RTIUV;
- 207   3            LPRDI = tmp & RDIV;
- 208   3            LPRFI = tmp & RFIV;
- 209   3            LPUNEQ = tmp & UNEQV;
- 210   3            
- 211   3            //must be write BIPERR_COUNTER_REG ; see manual
- 212   3            XBYTE[sw1021Chip+BIPERR_COUNTER_REG(A_BUS_BASE, n)] = 0x00;
- 213   3            g_liError1s[i].ulDatlong += XBYTE[sw1021Chip+BIPERR_COUNTER_REG(A_BUS_BASE, n)] + (XBYTE[sw1021Chip+BIP
+ 179          ** °æ  ±¾£º1.0
+ 180          ****************************************************************/
+ 181          void GetData()          
+ 182          {
+ 183   1        unsigned char i,m,n,mi,ni,tmp,ADCLK,PPILOS,TULOP,LPSLM,LPTIM,LPTIU,LPRDI,LPRFI,LPUNEQ,TUAIS,PPIAIS,
+ 184   1        LOOP,LOOPL,tv5;
+ 185   1        unsigned int  LPFEBE,HDB3;
+ 186   1        actnumber=0;
+ 187   1        almnumber=0;
+ 188   1        sw1021Chip = SW1021;
+ 189   1        for(i=0;i<(LINENUM-1);i++)
+ 190   1        {          
+ 191   2          
+ 192   2          if(g_ucState[78+i]==0)
+ 193   2          {
+ 194   3            g_ucLineMask[i]=1;
+ 195   3            // ADCLK ¸æ¾¯ (A Â·ÏÂÐÐÊ±ÖÓ¸æ¾¯ )
+ 196   3            ADCLK=XBYTE[sw1021Chip+E1_IF_STATUS_REG] & ADLOC; 
+ 197   3      
+ 198   3          }
+ 199   2          else   
+ 200   2          {
+ 201   3            m=i/21;
+ 202   3            n=i%21;
+ 203   3            mi=i/8;
+ 204   3            ni=i%8;
+ 205   3            
+ 206   3            sw1021Chip = SW1021_CHIP_ADDR(m);
+ 207   3            
+ 208   3            if(TULOP||TUAIS)
+ 209   3              g_ucLofFlag[i]=1;      //ÓÐTULOP,TUAIS,PPILOS¸æ¾¯Ö®Ò»Ê±ÉÏ±¨UAS
+ 210   3            else
+ 211   3              g_ucLofFlag[i]=0;
+ 212   3            
+ 213   3            actnumber=actnumber+g_ucConfData[64+i];
+ 214   3            
+ 215   3            ADCLK = XBYTE[sw1021Chip+E1_IF_STATUS_REG] & ADLOC;
+ 216   3            tmp = XBYTE[sw1021Chip+PORT_E1_ALARM_REG(n)];
+ 217   3            PPIAIS = tmp & E1AIS;
+ 218   3            PPILOS = tmp & E1LOS;
+ 219   3          /*
+ 220   3            tmp = XBYTE[sw1021Chip+TU12_J2_STATUS_REG2(A_BUS_BASE, n)];
+ 221   3            TULOP = tmp & LOPI;
+ 222   3            TUAIS = tmp & AISI;
+ 223   3            LPSLM = tmp & PLMI;
+ 224   3            LPTIM = tmp & RTIMI;
+ 225   3            LPTIU = tmp & RTIUI;
+ 226   3            LPRDI = tmp & RDII;
+ 227   3            LPRFI = tmp & RFII;
+ 228   3            LPUNEQ = tmp & UNEQI;
+ 229   3          */  
+ 230   3            
+ 231   3            
+ 232   3            tmp = XBYTE[sw1021Chip+TU12_J2_STATUS_REG(A_BUS_BASE, n)];
+ 233   3            TULOP = tmp & LOPV;
+ 234   3            TUAIS = tmp & AISV;
+ 235   3            LPSLM = tmp & PLMV;
+ 236   3            LPTIM = tmp & RTIMV;
+ 237   3            LPTIU = tmp & RTIUV;
+ 238   3            LPRDI = tmp & RDIV;
+ 239   3            LPRFI = tmp & RFIV;
+ 240   3            LPUNEQ = tmp & UNEQV;
+C51 COMPILER V9.54   GF2488_01F1_E1_RST                                                    04/16/2016 16:30:00 PAGE 5   
+
+ 241   3            
+ 242   3            //must be write BIPERR_COUNTER_REG ; see manual
+ 243   3            XBYTE[sw1021Chip+BIPERR_COUNTER_REG(A_BUS_BASE, n)] = 0x00;
+ 244   3            g_liError1s[i].ulDatlong += XBYTE[sw1021Chip+BIPERR_COUNTER_REG(A_BUS_BASE, n)] + (XBYTE[sw1021Chip+BIP
              -ERR_COUNTER_REG(A_BUS_BASE, n) + 1] * 256);   // BIP´íÎó¼ÆÊýÖµ
- 214   3            //must be write REI_COUNTER_REG ; see manual
- 215   3            XBYTE[sw1021Chip+REI_COUNTER_REG(A_BUS_BASE, n)] = 0x00;
- 216   3            LPFEBE = XBYTE[sw1021Chip+REI_COUNTER_REG(A_BUS_BASE, n)] + (XBYTE[sw1021Chip+REI_COUNTER_REG(A_BUS_BAS
+ 245   3            //must be write REI_COUNTER_REG ; see manual
+ 246   3            XBYTE[sw1021Chip+REI_COUNTER_REG(A_BUS_BASE, n)] = 0x00;
+ 247   3            LPFEBE = XBYTE[sw1021Chip+REI_COUNTER_REG(A_BUS_BASE, n)] + (XBYTE[sw1021Chip+REI_COUNTER_REG(A_BUS_BAS
              -E, n) + 1] * 256); //REI(FEBE)¼ÆÊýÖµ
- 217   3            
- 218   3            tmp = XBYTE[sw1021Chip + PORT_TEST_REG(n)];
- 219   3                  
- 220   3            LOOPL =  tmp & E1LBK;
- 221   3            LOOP =   tmp & LnLBK;
- 222   3            
- 223   3            if((g_ucConfData[200+mi]&(0x01<<ni))==0)
- 224   3            {
- 225   4              g_stuAlm[i*(ALMTYPENUM-3)+6].ucState=0;
- 226   4              if(PPILOS) g_stuAlm[i*(ALMTYPENUM-3)].ucState=1;           
- 227   4              else                                              //E1ÊäÈë¿ÚÓÐÐÅºÅÊ±/// 
- 228   4              {
- 229   5                if(g_stuAlm[i*(ALMTYPENUM-3)].ucState==1)  //Èç¹û»¹´æÔÚPPILOS¸æ¾¯//
- 230   5                if(WP==1)                        //·Ç±£»¤ÅÌÎ»Ê±//
- 231   5                {
- 232   6                  // ÏòµÚiÍ¨µÀÉÏ»°·½Ïò²å¶ÌÊ±¼äµÄÎ±Ëæ»úÂë
- 233   6                  XBYTE[sw1021Chip + PORT_TEST_REG(n)] = PRBSEN | PRBST;
- 234   6                  g_stuAlm[i*(ALMTYPENUM-3)].ucState=0;//²»¸æPPILOS//
- 235   6          
- 236   6                  Delay(10);
- 237   6                  XBYTE[sw1021Chip + PORT_TEST_REG(n)] = 0x00; //Í£²åÎ±Ëæ»úÂë
- 238   6      
-C51 COMPILER V9.54   GF2488_01F1_E1_RST                                                    04/15/2016 18:54:06 PAGE 5   
+ 248   3            
+ 249   3            tmp = XBYTE[sw1021Chip + PORT_TEST_REG(n)];
+ 250   3                  
+ 251   3            LOOPL =  tmp & E1LBK;
+ 252   3            LOOP =   tmp & LnLBK;
+ 253   3            
+ 254   3            if((g_ucConfData[200+mi]&(0x01<<ni))==0)
+ 255   3            {
+ 256   4              g_stuAlm[i*(ALMTYPENUM-3)+6].ucState=0;
+ 257   4              if(PPILOS) g_stuAlm[i*(ALMTYPENUM-3)].ucState=1;           
+ 258   4              else                                              //E1ÊäÈë¿ÚÓÐÐÅºÅÊ±/// 
+ 259   4              {
+ 260   5                if(g_stuAlm[i*(ALMTYPENUM-3)].ucState==1)  //Èç¹û»¹´æÔÚPPILOS¸æ¾¯//
+ 261   5                if(WP==1)                        //·Ç±£»¤ÅÌÎ»Ê±//
+ 262   5                {
+ 263   6                  // ÏòµÚiÍ¨µÀÉÏ»°·½Ïò²å¶ÌÊ±¼äµÄÎ±Ëæ»úÂë
+ 264   6                  XBYTE[sw1021Chip + PORT_TEST_REG(n)] = PRBSEN | PRBST;
+ 265   6                  g_stuAlm[i*(ALMTYPENUM-3)].ucState=0;//²»¸æPPILOS//
+ 266   6          
+ 267   6                  Delay(10);
+ 268   6                  XBYTE[sw1021Chip + PORT_TEST_REG(n)] = 0x00; //Í£²åÎ±Ëæ»úÂë
+ 269   6      
+ 270   6                }
+ 271   5                else g_stuAlm[i*(ALMTYPENUM-3)].ucState=0;//²»¸æPPILOS////±£»¤ÅÌÎ»Ê±//
+ 272   5              }
+ 273   4      
+ 274   4            }
+ 275   3            else
+ 276   3            {
+ 277   4              g_stuAlm[i*(ALMTYPENUM-3)].ucState=0;
+ 278   4              if(PPILOS) g_stuAlm[i*(ALMTYPENUM-3)+6].ucState=0;               
+ 279   4              else  g_stuAlm[i*(ALMTYPENUM-3)+6].ucState=1;
+ 280   4            }              
+ 281   3            //if(PPIAIS) g_stuAlm[i*(ALMTYPENUM-3)+8].ucState=1;               
+ 282   3            //else g_stuAlm[i*(ALMTYPENUM-3)+8].ucState=0;
+ 283   3            if(TULOP) g_stuAlm[i*(ALMTYPENUM-3)+1].ucState=1;              
+ 284   3            else g_stuAlm[i*(ALMTYPENUM-3)+1].ucState=0;  
+ 285   3            if(TUAIS) g_stuAlm[i*(ALMTYPENUM-3)+5].ucState=1;              
+ 286   3            else g_stuAlm[i*(ALMTYPENUM-3)+5].ucState=0;
+ 287   3            if(TULOP||TUAIS)
+ 288   3            {
+ 289   4              g_stuAlm[i*(ALMTYPENUM-3)+2].ucState=0;
+ 290   4              g_stuAlm[i*(ALMTYPENUM-3)+3].ucState=0;
+ 291   4              g_stuAlm[i*(ALMTYPENUM-3)+4].ucState=0;
+ 292   4              #ifdef NEED_LP_RFI
+                      g_stuAlm[i*(ALMTYPENUM-3)+15].ucState=0; 
+                      #endif
+ 295   4              g_stuAlm[i*(ALMTYPENUM-3)+9].ucState=0; 
+ 296   4            }
+ 297   3            else
+ 298   3            {
+ 299   4              if(LPSLM) g_stuAlm[i*(ALMTYPENUM-3)+2].ucState=1;              
+ 300   4              else g_stuAlm[i*(ALMTYPENUM-3)+2].ucState=0;
+C51 COMPILER V9.54   GF2488_01F1_E1_RST                                                    04/16/2016 16:30:00 PAGE 6   
 
- 239   6                }
- 240   5                else g_stuAlm[i*(ALMTYPENUM-3)].ucState=0;//²»¸æPPILOS////±£»¤ÅÌÎ»Ê±//
- 241   5              }
- 242   4      
- 243   4            }
- 244   3            else
- 245   3            {
- 246   4              g_stuAlm[i*(ALMTYPENUM-3)].ucState=0;
- 247   4              if(PPILOS) g_stuAlm[i*(ALMTYPENUM-3)+6].ucState=0;               
- 248   4              else  g_stuAlm[i*(ALMTYPENUM-3)+6].ucState=1;
- 249   4            }              
- 250   3            //if(PPIAIS) g_stuAlm[i*(ALMTYPENUM-3)+8].ucState=1;               
- 251   3            //else g_stuAlm[i*(ALMTYPENUM-3)+8].ucState=0;
- 252   3            if(TULOP) g_stuAlm[i*(ALMTYPENUM-3)+1].ucState=1;              
- 253   3            else g_stuAlm[i*(ALMTYPENUM-3)+1].ucState=0;  
- 254   3            if(TUAIS) g_stuAlm[i*(ALMTYPENUM-3)+5].ucState=1;              
- 255   3            else g_stuAlm[i*(ALMTYPENUM-3)+5].ucState=0;
- 256   3            if(TULOP||TUAIS)
- 257   3            {
- 258   4              g_stuAlm[i*(ALMTYPENUM-3)+2].ucState=0;
- 259   4              g_stuAlm[i*(ALMTYPENUM-3)+3].ucState=0;
- 260   4              g_stuAlm[i*(ALMTYPENUM-3)+4].ucState=0;
- 261   4              //g_stuAlm[i*(ALMTYPENUM-3)+6].ucState=0; 
- 262   4              g_stuAlm[i*(ALMTYPENUM-3)+9].ucState=0; 
- 263   4            }
- 264   3            else
- 265   3            {
- 266   4              if(LPSLM) g_stuAlm[i*(ALMTYPENUM-3)+2].ucState=1;              
- 267   4              else g_stuAlm[i*(ALMTYPENUM-3)+2].ucState=0;
- 268   4              if(LPRDI) g_stuAlm[i*(ALMTYPENUM-3)+3].ucState=1;              
- 269   4              else g_stuAlm[i*(ALMTYPENUM-3)+3].ucState=0;
- 270   4              if(LPUNEQ) g_stuAlm[i*(ALMTYPENUM-3)+4].ucState=1;               
- 271   4              else g_stuAlm[i*(ALMTYPENUM-3)+4].ucState=0;
- 272   4      
- 273   4              // if(LPRFI) g_stuAlm[i*(ALMTYPENUM-3)+6].ucState=1;               
- 274   4              // else g_stuAlm[i*(ALMTYPENUM-3)+6].ucState=0;       
- 275   4              if(LPTIM) g_stuAlm[i*(ALMTYPENUM-3)+9].ucState=1;              
- 276   4              else g_stuAlm[i*(ALMTYPENUM-3)+9].ucState=0;  
- 277   4            }
- 278   3            if(LOOPL) g_stuAlm[i*(ALMTYPENUM-3)+10].ucState=1;               
- 279   3            else g_stuAlm[i*(ALMTYPENUM-3)+10].ucState=0;
- 280   3            if(LOOP) g_stuAlm[i*(ALMTYPENUM-3)+11].ucState=1;              
- 281   3            else g_stuAlm[i*(ALMTYPENUM-3)+11].ucState=0;
- 282   3            if(g_stuPm[i*PMTYPENUM+3].Value.usint>=(0xffff-LPFEBE)) g_stuPm[i*PMTYPENUM+3].Value.usint=0xffff;     
+ 301   4              if(LPRDI) g_stuAlm[i*(ALMTYPENUM-3)+3].ucState=1;              
+ 302   4              else g_stuAlm[i*(ALMTYPENUM-3)+3].ucState=0;
+ 303   4              if(LPUNEQ) g_stuAlm[i*(ALMTYPENUM-3)+4].ucState=1;               
+ 304   4              else g_stuAlm[i*(ALMTYPENUM-3)+4].ucState=0;
+ 305   4      
+ 306   4              /* ·é»ðÀÏÉè±¸Î´Ê¹ÓÃRFI,²»Ê¹ÓÃÊ±½«ÏÂÃæÁ½¾äÆÁ±Î */
+ 307   4      #ifdef NEED_LP_RFI
+                       if(LPRFI) g_stuAlm[i*(ALMTYPENUM-3)+15].ucState=1;              
+                       else g_stuAlm[i*(ALMTYPENUM-3)+15].ucState=0; 
+              #endif
+ 311   4              
+ 312   4              if(LPTIM) g_stuAlm[i*(ALMTYPENUM-3)+9].ucState=1;              
+ 313   4              else g_stuAlm[i*(ALMTYPENUM-3)+9].ucState=0;  
+ 314   4            }
+ 315   3            if(LOOPL) g_stuAlm[i*(ALMTYPENUM-3)+10].ucState=1;               
+ 316   3            else g_stuAlm[i*(ALMTYPENUM-3)+10].ucState=0;
+ 317   3            if(LOOP) g_stuAlm[i*(ALMTYPENUM-3)+11].ucState=1;              
+ 318   3            else g_stuAlm[i*(ALMTYPENUM-3)+11].ucState=0;
+ 319   3            if(g_stuPm[i*PMTYPENUM+3].Value.usint>=(0xffff-LPFEBE)) g_stuPm[i*PMTYPENUM+3].Value.usint=0xffff;     
              -  
- 283   3            else g_stuPm[i*PMTYPENUM+3].Value.usint+=LPFEBE;   //REI(FEBE)ÐÔÄÜÖµ                    
- 284   3            if(g_stuAlm[i*(ALMTYPENUM-3)].ucState==0)                               //ÎÞPPI_LOS¸æ¾¯Ê±
- 285   3            {
- 286   4               //HDB3±àÂëÎ¥Àý¼ÆÊýÖµ
- 287   4              HDB3 = XBYTE[sw1021Chip + HDB3_CV_REG(n)];
- 288   4              
- 289   4              if(g_stuPm[i*PMTYPENUM+4].Value.usint>=(0xffff-HDB3)) g_stuPm[i*PMTYPENUM+4].Value.usint=0xffff;     
- 290   4              else g_stuPm[i*PMTYPENUM+4].Value.usint+=HDB3;      // HDB3ÐÔÄÜÖµ         //g_stuPm[i][4]=HDB3CV
- 291   4            }           
- 292   3      
- 293   3            if(g_stuAlm[i*(ALMTYPENUM-3)+1].ucState||g_stuAlm[i*(ALMTYPENUM-3)+5].ucState)
- 294   3            almnumber=almnumber+1;
- 295   3            
- 296   3            tv5 = XBYTE[sw1021Chip + TX_V5_REG(A_BUS_BASE,n)];
- 297   3            if(g_stuAlm[i*(ALMTYPENUM-3)+1].ucState||g_stuAlm[i*(ALMTYPENUM-3)+5].ucState||g_stuAlm[i*(ALMTYPENUM-3
+ 320   3            else g_stuPm[i*PMTYPENUM+3].Value.usint+=LPFEBE;   //REI(FEBE)ÐÔÄÜÖµ                    
+ 321   3            if(g_stuAlm[i*(ALMTYPENUM-3)].ucState==0)                               //ÎÞPPI_LOS¸æ¾¯Ê±
+ 322   3            {
+ 323   4               //HDB3±àÂëÎ¥Àý¼ÆÊýÖµ
+ 324   4              HDB3 = XBYTE[sw1021Chip + HDB3_CV_REG(n)];
+ 325   4              
+ 326   4              if(g_stuPm[i*PMTYPENUM+4].Value.usint>=(0xffff-HDB3)) g_stuPm[i*PMTYPENUM+4].Value.usint=0xffff;     
+ 327   4              else g_stuPm[i*PMTYPENUM+4].Value.usint+=HDB3;      // HDB3ÐÔÄÜÖµ         //g_stuPm[i][4]=HDB3CV
+ 328   4            }           
+ 329   3      
+ 330   3            if(g_stuAlm[i*(ALMTYPENUM-3)+1].ucState||g_stuAlm[i*(ALMTYPENUM-3)+5].ucState)
+ 331   3            almnumber=almnumber+1;
+ 332   3            
+ 333   3            tv5 = XBYTE[sw1021Chip + TX_V5_REG(A_BUS_BASE,n)];
+ 334   3            if(g_stuAlm[i*(ALMTYPENUM-3)+1].ucState||g_stuAlm[i*(ALMTYPENUM-3)+5].ucState||g_stuAlm[i*(ALMTYPENUM-3
              -)+4].ucState)
- 298   3            { //Èç¹ûTUAIS,TULOP,LPUNEQÖ®Ò»Îª"1" ÔòÏòÉÏ²åVC12=AIS,LPRDI,ÏòÏÂ²åAIS
-C51 COMPILER V9.54   GF2488_01F1_E1_RST                                                    04/15/2016 18:54:06 PAGE 6   
+ 335   3            { //Èç¹ûTUAIS,TULOP,LPUNEQÖ®Ò»Îª"1" ÔòÏòÉÏ²åVC12=AIS,LPRDI,ÏòÏÂ²åAIS
+ 336   4                if((tv5 & RDI_CNF) != RDI_CNF)
+ 337   4                  XBYTE[sw1021Chip + TX_V5_REG(A_BUS_BASE,n)] = tv5 | RDI_CNF;
+ 338   4            }
+ 339   3            else
+ 340   3            {
+ 341   4              if((tv5 & RDI_CNF) == RDI_CNF)
+ 342   4                XBYTE[sw1021Chip + TX_V5_REG(A_BUS_BASE,n)] = tv5 & (~RDI_CNF);
+ 343   4            }
+ 344   3          }
+ 345   2        }
+ 346   1        
+ 347   1        for(i=0;i<(LINENUM-1);i++)
+ 348   1        {
+ 349   2          m=i/21;
+ 350   2          n=i%21;
+ 351   2          sw1021Chip = SW1021_CHIP_ADDR(m);
+ 352   2          // »ñÈ¡N2 ºÍ K4 Öµ
+ 353   2          //TODO: get N2
+ 354   2          //g_ucState[204+2*i]=XBYTE[WGS21891+0x0100+0x10*n+0x0C]; 
+ 355   2          g_ucState[205+2*i]=XBYTE[sw1021Chip + RX_K4_REG(A_BUS_BASE,n)];
+ 356   2          
+ 357   2          
+ 358   2          mi=i/8;
+ 359   2          ni=i%8;
+ 360   2          if((g_ucConfData[200+mi]&(0x01<<ni))==0)
+C51 COMPILER V9.54   GF2488_01F1_E1_RST                                                    04/16/2016 16:30:00 PAGE 7   
 
- 299   4                if((tv5 & RDI_CNF) != RDI_CNF)
- 300   4                  XBYTE[sw1021Chip + TX_V5_REG(A_BUS_BASE,n)] = tv5 | RDI_CNF;
- 301   4            }
- 302   3            else
- 303   3            {
- 304   4              if((tv5 & RDI_CNF) == RDI_CNF)
- 305   4                XBYTE[sw1021Chip + TX_V5_REG(A_BUS_BASE,n)] = tv5 & (~RDI_CNF);
- 306   4            }
- 307   3          }
- 308   2        }
- 309   1        
- 310   1        for(i=0;i<(LINENUM-1);i++)
- 311   1        {
- 312   2          m=i/21;
- 313   2          n=i%21;
- 314   2          sw1021Chip = SW1021_CHIP_ADDR(m);
- 315   2          // »ñÈ¡N2 ºÍ K4 Öµ
- 316   2          //TODO: get N2
- 317   2          //g_ucState[204+2*i]=XBYTE[WGS21891+0x0100+0x10*n+0x0C]; 
- 318   2          g_ucState[205+2*i]=XBYTE[sw1021Chip + RX_K4_REG(A_BUS_BASE,n)];
- 319   2          
- 320   2          
- 321   2          mi=i/8;
- 322   2          ni=i%8;
- 323   2          if((g_ucConfData[200+mi]&(0x01<<ni))==0)
- 324   2            g_ucState[330+mi]&=(~(0x01<<ni));
- 325   2      
- 326   2          else
- 327   2            g_ucState[330+mi]|=(0x01<<ni);    
- 328   2      
- 329   2          //  tv5=XBYTE[WGS21891+0x0100+0x10*n+0x00];
- 330   2      
- 331   2        }
- 332   1      
- 333   1         
- 334   1      
- 335   1        if(TUXAB) g_ucState[77]=0;
- 336   1        else g_ucState[77]=1;
- 337   1                           
- 338   1             
- 339   1        if((WP==0) &&(TUSWTI==0))  //±£»¤ÅÌÎ»Ê±,Èç¹ûÃ»ÓÐµ¹»»ACTµÆÂýÉÁ//     
- 340   1        {
- 341   2          g_ucState[76]=0;
- 342   2          g_LampEn=0;        
- 343   2          if(g_stuSysClock.ucSecond%2==0) ACT=ON;
- 344   2          else ACT=OFF;
- 345   2          for(i=0;i<(LINENUM-1);i++)
- 346   2          {
- 347   3            g_ucLineMask[i]=1;
- 348   3            g_ucState[141+i]=1;
- 349   3          }
- 350   2        }
- 351   1        else if(g_ucState[76]==0)
- 352   1        {                           
- 353   2          for(i=0;i<(LINENUM-1);i++)
- 354   2          {
- 355   3            if((g_ucConfData[64+i]==0)||(g_ucConfData[137+i]==01))
- 356   3            {    
- 357   4              g_ucLineMask[i]=1;
- 358   4              g_ucState[141+i]=1;  
- 359   4            }   
- 360   3            else
-C51 COMPILER V9.54   GF2488_01F1_E1_RST                                                    04/15/2016 18:54:06 PAGE 7   
+ 361   2            g_ucState[330+mi]&=(~(0x01<<ni));
+ 362   2      
+ 363   2          else
+ 364   2            g_ucState[330+mi]|=(0x01<<ni);    
+ 365   2      
+ 366   2          //  tv5=XBYTE[WGS21891+0x0100+0x10*n+0x00];
+ 367   2      
+ 368   2        }
+ 369   1      
+ 370   1         
+ 371   1      
+ 372   1        if(TUXAB) g_ucState[77]=0;
+ 373   1        else g_ucState[77]=1;
+ 374   1                           
+ 375   1             
+ 376   1        if((WP==0) &&(TUSWTI==0))  //±£»¤ÅÌÎ»Ê±,Èç¹ûÃ»ÓÐµ¹»»ACTµÆÂýÉÁ//     
+ 377   1        {
+ 378   2          g_ucState[76]=0;
+ 379   2          g_LampEn=0;        
+ 380   2          if(g_stuSysClock.ucSecond%2==0) ACT=ON;
+ 381   2          else ACT=OFF;
+ 382   2          for(i=0;i<(LINENUM-1);i++)
+ 383   2          {
+ 384   3            g_ucLineMask[i]=1;
+ 385   3            g_ucState[141+i]=1;
+ 386   3          }
+ 387   2        }
+ 388   1        else if(g_ucState[76]==0)
+ 389   1        {                           
+ 390   2          for(i=0;i<(LINENUM-1);i++)
+ 391   2          {
+ 392   3            if((g_ucConfData[64+i]==0)||(g_ucConfData[137+i]==01))
+ 393   3            {    
+ 394   4              g_ucLineMask[i]=1;
+ 395   4              g_ucState[141+i]=1;  
+ 396   4            }   
+ 397   3            else
+ 398   3            {
+ 399   4              g_ucLineMask[i]=0;  
+ 400   4              g_ucState[141+i]=0;
+ 401   4            }
+ 402   3          }
+ 403   2          g_ucState[76]=1;     
+ 404   2          g_LampEn=1;
+ 405   2          WROUTPORT;           
+ 406   2        }
+ 407   1             
+ 408   1        UasClear();
+ 409   1      
+ 410   1      
+ 411   1        if(g_AllClrFlag)                //ÇåÐÔÄÜ
+ 412   1        {   
+ 413   2          g_bClearUas=1; 
+ 414   2          g_AllClrFlag=0;
+ 415   2        }
+ 416   1      
+ 417   1        if(g_SecondFlag)                   //Ãë±êÊ¶£¬1£º½øÈëÐÂµÄÒ»Ãë
+ 418   1        {
+ 419   2          CalUas(ulSesLmt);           //uas¼ÆËã        
+ 420   2      
+ 421   2          for(i=0; i<(LINENUM-1); i++)
+ 422   2          {
+C51 COMPILER V9.54   GF2488_01F1_E1_RST                                                    04/16/2016 16:30:00 PAGE 8   
 
- 361   3            {
- 362   4              g_ucLineMask[i]=0;  
- 363   4              g_ucState[141+i]=0;
- 364   4            }
- 365   3          }
- 366   2          g_ucState[76]=1;     
- 367   2          g_LampEn=1;
- 368   2          WROUTPORT;           
- 369   2        }
- 370   1             
- 371   1        UasClear();
- 372   1      
- 373   1      
- 374   1        if(g_AllClrFlag)                //ÇåÐÔÄÜ
- 375   1        {   
- 376   2          g_bClearUas=1; 
- 377   2          g_AllClrFlag=0;
- 378   2        }
- 379   1      
- 380   1        if(g_SecondFlag)                   //Ãë±êÊ¶£¬1£º½øÈëÐÂµÄÒ»Ãë
- 381   1        {
- 382   2          CalUas(ulSesLmt);           //uas¼ÆËã        
- 383   2      
- 384   2          for(i=0; i<(LINENUM-1); i++)
- 385   2          {
- 386   3            g_stuPm[i*PMTYPENUM].Value.usint=g_usiBbe[i];         //bbe_lpÐÔÄÜµÄ²É¼¯
- 387   3            g_stuPm[i*PMTYPENUM+1].Value.usint=g_usiEs[i];        //es_lpÐÔÄÜµÄ²É¼¯
- 388   3            g_stuPm[i*PMTYPENUM+2].Value.usint=g_usiSes[i];       //ses_lpÐÔÄÜµÄ²É¼¯
- 389   3            if(g_usiEs[i]>=ulEsLimit) 
- 390   3              g_stuAlm[i*(ALMTYPENUM-3)+7].ucState=1;    //curalm[i][8]=es_limit
- 391   3            else 
- 392   3              g_stuAlm[i*(ALMTYPENUM-3)+7].ucState=0;
- 393   3            // if(g_usiSes[i]>=ulSesLimit) g_stuAlm[i*(ALMTYPENUM-3)+8].ucState=1;    //curalm[i][9]=ses_limit
- 394   3            // else g_stuAlm[i*(ALMTYPENUM-3)+8].ucState=0;
- 395   3            g_stuPm[i*PMTYPENUM+5].Value.usint=g_usiUas[i];             //UAS_LPÐÔÄÜµÄ²É¼¯
- 396   3            g_stuPm[i*PMTYPENUM+6].Value.usint=g_usiCses[i];            //cses_lpÐÔÄÜµÄ²É¼¯
- 397   3      
- 398   3      
- 399   3            /******************************************************************************/
- 400   3            if(g_stuAlm[i*(ALMTYPENUM-3)+5].ucState||g_stuAlm[i*(ALMTYPENUM-3)+1].ucState)
- 401   3            {
- 402   4              g_stuAlm[i*(ALMTYPENUM-3)+8].ucState=0;
- 403   4              BIP[i]=0;
- 404   4            }
- 405   3            else
- 406   3            {
- 407   4              BIP_2_1S[i]=BIP[i];
- 408   4              BIP_2_1000S[i]+=BIP[i];  
- 409   4              BIP[i]=0;
- 410   4              switch(g_ucConfData[129])
- 411   4              {
- 412   5                case 0x04:
- 413   5                if(BIP_2_1S[i]>=217) 
- 414   5                  g_stuAlm[i*(ALMTYPENUM-3)+8].ucState=1;
- 415   5                else if(BIP_2_1S[i]<=23) 
- 416   5                  g_stuAlm[i*(ALMTYPENUM-3)+8].ucState=0;
- 417   5                break;
- 418   5      
- 419   5                case 0x05:
- 420   5                if(BIP_2_1S[i]>=22) 
- 421   5                  g_stuAlm[i*(ALMTYPENUM-3)+8].ucState=1;
- 422   5                else if(BIP_2_1S[i]<=3) 
-C51 COMPILER V9.54   GF2488_01F1_E1_RST                                                    04/15/2016 18:54:06 PAGE 8   
+ 423   3            g_stuPm[i*PMTYPENUM].Value.usint=g_usiBbe[i];         //bbe_lpÐÔÄÜµÄ²É¼¯
+ 424   3            g_stuPm[i*PMTYPENUM+1].Value.usint=g_usiEs[i];        //es_lpÐÔÄÜµÄ²É¼¯
+ 425   3            g_stuPm[i*PMTYPENUM+2].Value.usint=g_usiSes[i];       //ses_lpÐÔÄÜµÄ²É¼¯
+ 426   3            if(g_usiEs[i]>=ulEsLimit) 
+ 427   3              g_stuAlm[i*(ALMTYPENUM-3)+7].ucState=1;    //curalm[i][8]=es_limit
+ 428   3            else 
+ 429   3              g_stuAlm[i*(ALMTYPENUM-3)+7].ucState=0;
+ 430   3            // if(g_usiSes[i]>=ulSesLimit) g_stuAlm[i*(ALMTYPENUM-3)+8].ucState=1;    //curalm[i][9]=ses_limit
+ 431   3            // else g_stuAlm[i*(ALMTYPENUM-3)+8].ucState=0;
+ 432   3            g_stuPm[i*PMTYPENUM+5].Value.usint=g_usiUas[i];             //UAS_LPÐÔÄÜµÄ²É¼¯
+ 433   3            g_stuPm[i*PMTYPENUM+6].Value.usint=g_usiCses[i];            //cses_lpÐÔÄÜµÄ²É¼¯
+ 434   3      
+ 435   3      
+ 436   3            /******************************************************************************/
+ 437   3            if(g_stuAlm[i*(ALMTYPENUM-3)+5].ucState||g_stuAlm[i*(ALMTYPENUM-3)+1].ucState)
+ 438   3            {
+ 439   4              g_stuAlm[i*(ALMTYPENUM-3)+8].ucState=0;
+ 440   4              BIP[i]=0;
+ 441   4            }
+ 442   3            else
+ 443   3            {
+ 444   4              BIP_2_1S[i]=BIP[i];
+ 445   4              BIP_2_1000S[i]+=BIP[i];  
+ 446   4              BIP[i]=0;
+ 447   4              switch(g_ucConfData[129])
+ 448   4              {
+ 449   5                case 0x04:
+ 450   5                if(BIP_2_1S[i]>=217) 
+ 451   5                  g_stuAlm[i*(ALMTYPENUM-3)+8].ucState=1;
+ 452   5                else if(BIP_2_1S[i]<=23) 
+ 453   5                  g_stuAlm[i*(ALMTYPENUM-3)+8].ucState=0;
+ 454   5                break;
+ 455   5      
+ 456   5                case 0x05:
+ 457   5                if(BIP_2_1S[i]>=22) 
+ 458   5                  g_stuAlm[i*(ALMTYPENUM-3)+8].ucState=1;
+ 459   5                else if(BIP_2_1S[i]<=3) 
+ 460   5                  g_stuAlm[i*(ALMTYPENUM-3)+8].ucState=0;
+ 461   5                break;
+ 462   5      
+ 463   5                case 0x06:
+ 464   5      
+ 465   5      
+ 466   5                if((N1000[i]>=10)&&(N1000[i]<100))
+ 467   5                {
+ 468   6                  if(BIP_2_1000S[i]>=22) 
+ 469   6                    g_stuAlm[i*(ALMTYPENUM-3)+8].ucState=1;
+ 470   6                  else if(BIP_2_1000S[i]<=3) 
+ 471   6                    g_stuAlm[i*(ALMTYPENUM-3)+8].ucState=0;
+ 472   6                  N1000[i]=0;
+ 473   6                  BIP_2_1000S[i]=0;
+ 474   6                }
+ 475   5                else N1000[i]++;
+ 476   5      
+ 477   5                break;
+ 478   5      
+ 479   5                case 0x07:
+ 480   5      
+ 481   5      
+ 482   5                if((N1000[i]>=100)&&(N1000[i]<1000))
+ 483   5                {
+ 484   6                  if(BIP_2_1000S[i]>=22) 
+C51 COMPILER V9.54   GF2488_01F1_E1_RST                                                    04/16/2016 16:30:00 PAGE 9   
 
- 423   5                  g_stuAlm[i*(ALMTYPENUM-3)+8].ucState=0;
- 424   5                break;
- 425   5      
- 426   5                case 0x06:
- 427   5      
- 428   5      
- 429   5                if((N1000[i]>=10)&&(N1000[i]<100))
- 430   5                {
- 431   6                  if(BIP_2_1000S[i]>=22) 
- 432   6                    g_stuAlm[i*(ALMTYPENUM-3)+8].ucState=1;
- 433   6                  else if(BIP_2_1000S[i]<=3) 
- 434   6                    g_stuAlm[i*(ALMTYPENUM-3)+8].ucState=0;
- 435   6                  N1000[i]=0;
- 436   6                  BIP_2_1000S[i]=0;
- 437   6                }
- 438   5                else N1000[i]++;
- 439   5      
- 440   5                break;
- 441   5      
- 442   5                case 0x07:
- 443   5      
- 444   5      
- 445   5                if((N1000[i]>=100)&&(N1000[i]<1000))
- 446   5                {
- 447   6                  if(BIP_2_1000S[i]>=22) 
- 448   6                    g_stuAlm[i*(ALMTYPENUM-3)+8].ucState=1;
- 449   6                  else if(BIP_2_1000S[i]<=3) 
- 450   6                    g_stuAlm[i*(ALMTYPENUM-3)+8].ucState=0;
- 451   6                  N1000[i]=0;
- 452   6                  BIP_2_1000S[i]=0;
- 453   6                }
- 454   5                else N1000[i]++;
- 455   5                break;
- 456   5      
- 457   5                case 0x08:
- 458   5      
- 459   5      
- 460   5                if(N1000[i]>=1000)
- 461   5                {
- 462   6                  if(BIP_2_1000S[i]>=22) 
- 463   6                    g_stuAlm[i*(ALMTYPENUM-3)+8].ucState=1;
- 464   6                  else if(BIP_2_1000S[i]<=3) 
- 465   6                    g_stuAlm[i*(ALMTYPENUM-3)+8].ucState=0;
- 466   6                  N1000[i]=0;
- 467   6                  BIP_2_1000S[i]=0;
- 468   6                }
- 469   5                else 
- 470   5                  N1000[i]++;
- 471   5                break;
- 472   5              }
- 473   4            }
- 474   3      
- 475   3          /********************************************************************************/
- 476   3      
- 477   3          }
- 478   2      
- 479   2          g_SecondFlag=0;      //Ãë±êÊ¶Çå?
- 480   2      
- 481   2        }     
- 482   1      
- 483   1        //IO8=1;
- 484   1        // WRHIO;
-C51 COMPILER V9.54   GF2488_01F1_E1_RST                                                    04/15/2016 18:54:06 PAGE 9   
+ 485   6                    g_stuAlm[i*(ALMTYPENUM-3)+8].ucState=1;
+ 486   6                  else if(BIP_2_1000S[i]<=3) 
+ 487   6                    g_stuAlm[i*(ALMTYPENUM-3)+8].ucState=0;
+ 488   6                  N1000[i]=0;
+ 489   6                  BIP_2_1000S[i]=0;
+ 490   6                }
+ 491   5                else N1000[i]++;
+ 492   5                break;
+ 493   5      
+ 494   5                case 0x08:
+ 495   5      
+ 496   5      
+ 497   5                if(N1000[i]>=1000)
+ 498   5                {
+ 499   6                  if(BIP_2_1000S[i]>=22) 
+ 500   6                    g_stuAlm[i*(ALMTYPENUM-3)+8].ucState=1;
+ 501   6                  else if(BIP_2_1000S[i]<=3) 
+ 502   6                    g_stuAlm[i*(ALMTYPENUM-3)+8].ucState=0;
+ 503   6                  N1000[i]=0;
+ 504   6                  BIP_2_1000S[i]=0;
+ 505   6                }
+ 506   5                else 
+ 507   5                  N1000[i]++;
+ 508   5                break;
+ 509   5              }
+ 510   4            }
+ 511   3      
+ 512   3          /********************************************************************************/
+ 513   3      
+ 514   3          }
+ 515   2      
+ 516   2          g_SecondFlag=0;      //Ãë±êÊ¶Çå?
+ 517   2      
+ 518   2        }     
+ 519   1      
+ 520   1        //IO8=1;
+ 521   1        // WRHIO;
+ 522   1        //RDHIO;    
+ 523   1        //IO9=1;
+ 524   1        // WRHIO;
+ 525   1        //RDHIO;
+ 526   1        //IO10=1;
+ 527   1        // WRHIO;
+ 528   1        //RDHIO;
+ 529   1        //IO11=1;
+ 530   1        // WRHIO;
+ 531   1        //RDHIO;
+ 532   1        //IO12=1;
+ 533   1        // WRHIO;
+ 534   1        RDHIO;
+ 535   1      
+ 536   1         
+ 537   1             
+ 538   1        if(ADCLK||(P2V5==0)||(first_conf==0)) 
+ 539   1          TUALMO=1; //Èç¹û¹¤×÷Ö§Â·ÖÐÈ«²¿ÓÐ¸æ¾¯»ò2.5V//
+ 540   1        else 
+ 541   1          TUALMO=0; //µçÔ´ÓÐ¸æ¾¯»òÏÂÅäÖÃÇ°TUALMO=1,·ñÔòTUALMO=0//
+ 542   1        if((P5VI1==0)&&(DZBI1==0)) 
+ 543   1          g_stuAlm[63*(ALMTYPENUM-3)+1].ucState=1;
+ 544   1        else    
+ 545   1          g_stuAlm[63*(ALMTYPENUM-3)+1].ucState=0;               
+ 546   1        if((P5VI2==0)&&(DZBI2==0)) 
+C51 COMPILER V9.54   GF2488_01F1_E1_RST                                                    04/16/2016 16:30:00 PAGE 10  
 
- 485   1        //RDHIO;    
- 486   1        //IO9=1;
- 487   1        // WRHIO;
- 488   1        //RDHIO;
- 489   1        //IO10=1;
- 490   1        // WRHIO;
- 491   1        //RDHIO;
- 492   1        //IO11=1;
- 493   1        // WRHIO;
- 494   1        //RDHIO;
- 495   1        //IO12=1;
- 496   1        // WRHIO;
- 497   1        RDHIO;
- 498   1      
- 499   1         
- 500   1             
- 501   1        if(ADCLK||(P2V5==0)||(first_conf==0)) 
- 502   1          TUALMO=1; //Èç¹û¹¤×÷Ö§Â·ÖÐÈ«²¿ÓÐ¸æ¾¯»ò2.5V//
- 503   1        else 
- 504   1          TUALMO=0; //µçÔ´ÓÐ¸æ¾¯»òÏÂÅäÖÃÇ°TUALMO=1,·ñÔòTUALMO=0//
- 505   1        if((P5VI1==0)&&(DZBI1==0)) 
- 506   1          g_stuAlm[63*(ALMTYPENUM-3)+1].ucState=1;
- 507   1        else    
- 508   1          g_stuAlm[63*(ALMTYPENUM-3)+1].ucState=0;               
- 509   1        if((P5VI2==0)&&(DZBI2==0)) 
- 510   1          g_stuAlm[63*(ALMTYPENUM-3)+2].ucState=1;
- 511   1        else    
- 512   1          g_stuAlm[63*(ALMTYPENUM-3)+2].ucState=0;       
- 513   1        if(P2V5==0) 
- 514   1          g_stuAlm[63*(ALMTYPENUM-3)+0].ucState=1;
- 515   1        else    
- 516   1          g_stuAlm[63*(ALMTYPENUM-3)+0].ucState=0;                     
- 517   1       
- 518   1      }
- 519          
- 520          /*****************************************************************
- 521          ** º¯ÊýÃû:USERFUN
- 522          ** Êä¡¡Èë: ÎÞ
- 523          ** Êä¡¡³ö: ÎÞ
- 524          ** ¹¦ÄÜÃèÊö£ºÓÃ»§ÊµÊ±´¦Àíº¯Êý£¬10ºÁÃë±»µ÷ÓÃÒ»´Î
- 525          ** È«¾Ö±äÁ¿£ºÎÞ
- 526          ** µ÷ÓÃÄ£¿é£ºÎÞ
- 527          ** ×÷¡¡Õß£ºÎÌÒæêÍ
- 528          ** ÈÕ¡¡ÆÚ£º2002.5.25
- 529          ** ÐÞ¡¡¸Ä£º
- 530          ** ÈÕ¡¡ÆÚ£º
- 531          ** °æ  ±¾£º1.0
- 532          ****************************************************************/
- 533          
- 534          void UserFunc() using 1
- 535          {
- 536   1        return;
- 537   1      }
- 538          
- 539          /*****************************************************************
- 540          ** º¯ÊýÃû:CONF_SET
- 541          ** Êä¡¡Èë: ÎÞ
- 542          ** Êä¡¡³ö: ÎÞ
- 543          ** ¹¦ÄÜÃèÊö£ºµ¥ÅÌÅäÖÃ
- 544          ** È«¾Ö±äÁ¿£ºÎÞ
- 545          ** µ÷ÓÃÄ£¿é£ºÎÞ
- 546          ** ×÷¡¡Õß£ºcaijun.Li
-C51 COMPILER V9.54   GF2488_01F1_E1_RST                                                    04/15/2016 18:54:06 PAGE 10  
+ 547   1          g_stuAlm[63*(ALMTYPENUM-3)+2].ucState=1;
+ 548   1        else    
+ 549   1          g_stuAlm[63*(ALMTYPENUM-3)+2].ucState=0;       
+ 550   1        if(P2V5==0) 
+ 551   1          g_stuAlm[63*(ALMTYPENUM-3)+0].ucState=1;
+ 552   1        else    
+ 553   1          g_stuAlm[63*(ALMTYPENUM-3)+0].ucState=0;                     
+ 554   1       
+ 555   1      }
+ 556          
+ 557          /*****************************************************************
+ 558          ** º¯ÊýÃû:USERFUN
+ 559          ** Êä¡¡Èë: ÎÞ
+ 560          ** Êä¡¡³ö: ÎÞ
+ 561          ** ¹¦ÄÜÃèÊö£ºÓÃ»§ÊµÊ±´¦Àíº¯Êý£¬10ºÁÃë±»µ÷ÓÃÒ»´Î
+ 562          ** È«¾Ö±äÁ¿£ºÎÞ
+ 563          ** µ÷ÓÃÄ£¿é£ºÎÞ
+ 564          ** ×÷¡¡Õß£ºÎÌÒæêÍ
+ 565          ** ÈÕ¡¡ÆÚ£º2002.5.25
+ 566          ** ÐÞ¡¡¸Ä£º
+ 567          ** ÈÕ¡¡ÆÚ£º
+ 568          ** °æ  ±¾£º1.0
+ 569          ****************************************************************/
+ 570          
+ 571          void UserFunc() using 1
+ 572          {
+ 573   1        return;
+ 574   1      }
+ 575          
+ 576          /*****************************************************************
+ 577          ** º¯ÊýÃû:CONF_SET
+ 578          ** Êä¡¡Èë: ÎÞ
+ 579          ** Êä¡¡³ö: ÎÞ
+ 580          ** ¹¦ÄÜÃèÊö£ºµ¥ÅÌÅäÖÃ
+ 581          ** È«¾Ö±äÁ¿£ºÎÞ
+ 582          ** µ÷ÓÃÄ£¿é£ºÎÞ
+ 583          ** ×÷¡¡Õß£ºcaijun.Li
+ 584          ** ÈÕ¡¡ÆÚ£º2016.3.19
+ 585          ** ÐÞ¡¡¸Ä£º
+ 586          ** ÈÕ¡¡ÆÚ£º
+ 587          ** °æ  ±¾£º1.0
+ 588          ****************************************************************/
+ 589          void ConfSet(void)
+ 590          {
+ 591   1          /*Process ALMMASK*/
+ 592   1          /*Process PMMASK*/
+ 593   1        unsigned char i,j,ilong,m,n,temp;
+ 594   1      
+ 595   1        g_ucState[69]=g_ucConfData[5];
+ 596   1        g_ucState[70]=g_ucConfData[6];
+ 597   1        g_ucState[71]=g_ucConfData[7];
+ 598   1        g_ucState[72]=g_ucConfData[8];
+ 599   1        g_ucState[73]=g_ucConfData[9];
+ 600   1        g_ucState[74]=g_ucConfData[10];
+ 601   1        g_ucState[75]=g_ucConfData[11];
+ 602   1        for(i=0;i<(LINENUM-1);i++){
+ 603   2          m=i/21;
+ 604   2          n=i%21;
+ 605   2          sw1021Chip = SW1021_CHIP_ADDR(m);
+ 606   2        
+ 607   2          XBYTE[sw1021Chip + RXTU12_SLOT_REG(A_BUS_BASE,n)] = slot[i];  
+ 608   2          XBYTE[sw1021Chip + TXTU12_SLOT_REG(A_BUS_BASE,n)] = slot[i];  
+C51 COMPILER V9.54   GF2488_01F1_E1_RST                                                    04/16/2016 16:30:00 PAGE 11  
 
- 547          ** ÈÕ¡¡ÆÚ£º2016.3.19
- 548          ** ÐÞ¡¡¸Ä£º
- 549          ** ÈÕ¡¡ÆÚ£º
- 550          ** °æ  ±¾£º1.0
- 551          ****************************************************************/
- 552          void ConfSet(void)
- 553          {
- 554   1          /*Process ALMMASK*/
- 555   1          /*Process PMMASK*/
- 556   1        unsigned char i,j,ilong,m,n,temp;
- 557   1      
- 558   1        g_ucState[69]=g_ucConfData[5];
- 559   1        g_ucState[70]=g_ucConfData[6];
- 560   1        g_ucState[71]=g_ucConfData[7];
- 561   1        g_ucState[72]=g_ucConfData[8];
- 562   1        g_ucState[73]=g_ucConfData[9];
- 563   1        g_ucState[74]=g_ucConfData[10];
- 564   1        g_ucState[75]=g_ucConfData[11];
- 565   1        for(i=0;i<(LINENUM-1);i++){
- 566   2          m=i/21;
- 567   2          n=i%21;
- 568   2          sw1021Chip = SW1021_CHIP_ADDR(m);
- 569   2        
- 570   2          XBYTE[sw1021Chip + RXTU12_SLOT_REG(A_BUS_BASE,n)] = slot[i];  
- 571   2          XBYTE[sw1021Chip + TXTU12_SLOT_REG(A_BUS_BASE,n)] = slot[i];  
- 572   2          XBYTE[sw1021Chip + RXTU12_SLOT_REG(B_BUS_BASE,n)] = slot[i];  
- 573   2          XBYTE[sw1021Chip + TXTU12_SLOT_REG(B_BUS_BASE,n)] = slot[i];  
- 574   2      
- 575   2          if(g_ucConfData[64+i]==0){  // Ö§Â·¹Ø±Õ
- 576   3            // ÉÏÏÂ»°Ç¿·¢AIS
- 577   3            //XBYTE[sw1021Chip + TX_CTRL_REG(B_BUS_BASE,n)] = AIS_EN; 
- 578   3            temp = XBYTE[sw1021Chip + PORT_CFG_REG(n)];
- 579   3            XBYTE[sw1021Chip + PORT_CFG_REG(n)] = temp | TAISEN | RAISEN; 
- 580   3            XBYTE[sw1021Chip + TX_V5_REG(A_BUS_BASE,n)] = 0x00;
- 581   3                  
- 582   3            g_ucState[78+i]=0;     
- 583   3            g_ucLineMask[i]=1;
- 584   3            g_ucState[141+i]=1;
- 585   3          }else{  // Ö§Â·´ò¿ª
- 586   3            XBYTE[sw1021Chip + PORT_CFG_REG(n)] = A_UP_DOWN | RnEN;
- 587   3            XBYTE[sw1021Chip + TX_V5_REG(A_BUS_BASE,n)] = REI_CNF | (0x02 << 1);  // ×¢ÒâÐÅºÅ±ê¼ÇÖµµÃÅäÖÃ
- 588   3            if(g_ucState[78+i]==0)//¸Õ´ò¿ªÖ§Â·¿ª¹ØÊ±²åÎ±Ëæ»úÂë
- 589   3            {
- 590   4              //TODO: Æô¶¯ÎóÂë¼ÆÊýÆ÷
- 591   4              XBYTE[sw1021Chip + PORT_TEST_REG(n)] = PRBSEN | PRBST;
- 592   4              Delay(5);
- 593   4              XBYTE[sw1021Chip + PORT_TEST_REG(n)] = 0x00;
- 594   4              g_ucState[78+i]=1;
- 595   4              g_ucLineMask[i]=0; 
- 596   4              g_ucState[141+i]=0;
- 597   4            }         
- 598   3          }
- 599   2          XBYTE[sw1021Chip + TX_K4_REG(A_BUS_BASE,n)]= g_ucConfData[263+4*i+2];               // K4 ·¢ 
- 600   2          XBYTE[sw1021Chip + TX_K4_REG(B_BUS_BASE,n)]= g_ucConfData[263+4*i+2];               // K4 ·¢ 
- 601   2          // TODO: N2 ·¢
- 602   2          //XBYTE[WGS21891+0x0100+0x10*n+0x01]=g_ucConfData[263+4*i];                 // N2 ·¢
- 603   2        
- 604   2          // J2 ·¢ ºÍ ÆÚÍûÊÕ
- 605   2          for(j=0;j<16;j++)
- 606   2          {
- 607   3            if(j==0) temp=0x80;
- 608   3            else temp=0;
-C51 COMPILER V9.54   GF2488_01F1_E1_RST                                                    04/15/2016 18:54:06 PAGE 11  
-
- 609   3            
- 610   3            // A 
- 611   3            writeTxJ2(m, j, slot[i],  temp|g_ucConfData[515+2*i*16+j], 0);
- 612   3            writeExpectJ2(m, j, slot[i],  temp|g_ucConfData[515+16+2*i*16+j], 0);
- 613   3            // B
- 614   3            writeTxJ2(m, j, slot[i],  temp|g_ucConfData[515+2*i*16+j], 1);
- 615   3            writeExpectJ2(m, j, slot[i],  temp|g_ucConfData[515+16+2*i*16+j], 1);
- 616   3          }
- 617   2          
- 618   2          if(g_ucConfData[137+i]==0)   //confdata[137+i]==0²»ÆÁ±ÎÖ§Â·i¸æ¾¯/·ñÔòÆÁ±ÎÖ§Â·i¸æ¾¯//
- 619   2          {
- 620   3            g_ucLineMask[i]=0;
- 621   3            g_ucState[141+i]=0;
- 622   3          }
- 623   2          else
- 624   2          {
- 625   3            g_ucLineMask[i]=1;
- 626   3            g_ucState[141+i]=1;
- 627   3          }
- 628   2        //if(g_ucConfData[200+i]==0)     //confdata[200+i]==1Ö§Â·i×°ÔØ/·ñÔò²»×°ÔØ//
- 629   2        //XBYTE[WGS21891+0x0100+0x10*n+0x00]=0x00;
- 630   2        // else  XBYTE[WGS21891+0x0100+0x10*n+0x00]=0x04;
- 631   2      
- 632   2        }
- 633   1      
- 634   1      
- 635   1      
- 636   1        for(j=0;j<ALMTYPENUM;j++) 
- 637   1        {
- 638   2           
- 639   2           for(ilong=29;ilong<(29+ALMTYPENUM);ilong++)
- 640   2           {    
- 641   3              if(g_ucConfData[ilong]==g_ucAlmCode[j])   //´ÓÍø¹ÜÉè¸æ¾¯ÆÁ±Î//
- 642   3              {
- 643   4               g_ucAlmMask[j]=1;                              
- 644   4               break;     
- 645   4              }
- 646   3              else
- 647   3              g_ucAlmMask[j]=0;
- 648   3      
- 649   3           }
- 650   2        }      
- 651   1                          
- 652   1        for(j=0;j<PMTYPENUM;j++)  
- 653   1        {
- 654   2      
- 655   2          for(ilong=54;ilong<(54+PMTYPENUM);ilong++)
- 656   2          {   
- 657   3            if(g_ucConfData[ilong]==g_ucPmCode[j])   //´ÓÍø¹ÜÉèÐÔÄÜÆÁ±Î//
- 658   3            {
- 659   4              g_ucPmMask[j]=1;                              
- 660   4              break;    
- 661   4            }
- 662   3            else
- 663   3              g_ucPmMask[j]=0;
+ 609   2          XBYTE[sw1021Chip + RXTU12_SLOT_REG(B_BUS_BASE,n)] = slot[i];  
+ 610   2          XBYTE[sw1021Chip + TXTU12_SLOT_REG(B_BUS_BASE,n)] = slot[i];  
+ 611   2      
+ 612   2          if(g_ucConfData[64+i]==0){  // Ö§Â·¹Ø±Õ
+ 613   3            // ÉÏÏÂ»°Ç¿·¢AIS
+ 614   3            //XBYTE[sw1021Chip + TX_CTRL_REG(B_BUS_BASE,n)] = AIS_EN; 
+ 615   3            temp = XBYTE[sw1021Chip + PORT_CFG_REG(n)];
+ 616   3            XBYTE[sw1021Chip + PORT_CFG_REG(n)] = temp | TAISEN | RAISEN; 
+ 617   3            XBYTE[sw1021Chip + TX_V5_REG(A_BUS_BASE,n)] = 0x00;
+ 618   3                  
+ 619   3            g_ucState[78+i]=0;     
+ 620   3            g_ucLineMask[i]=1;
+ 621   3            g_ucState[141+i]=1;
+ 622   3          }else{  // Ö§Â·´ò¿ª
+ 623   3            XBYTE[sw1021Chip + PORT_CFG_REG(n)] = A_UP_DOWN | RnEN;
+ 624   3            XBYTE[sw1021Chip + TX_V5_REG(A_BUS_BASE,n)] = REI_CNF | (0x02 << 1);  // ×¢ÒâÐÅºÅ±ê¼ÇÖµµÃÅäÖÃ
+ 625   3            if(g_ucState[78+i]==0)//¸Õ´ò¿ªÖ§Â·¿ª¹ØÊ±²åÎ±Ëæ»úÂë
+ 626   3            {
+ 627   4              //TODO: Æô¶¯ÎóÂë¼ÆÊýÆ÷
+ 628   4              XBYTE[sw1021Chip + PORT_TEST_REG(n)] = PRBSEN | PRBST;
+ 629   4              Delay(5);
+ 630   4              XBYTE[sw1021Chip + PORT_TEST_REG(n)] = 0x00;
+ 631   4              g_ucState[78+i]=1;
+ 632   4              g_ucLineMask[i]=0; 
+ 633   4              g_ucState[141+i]=0;
+ 634   4            }         
+ 635   3          }
+ 636   2          XBYTE[sw1021Chip + TX_K4_REG(A_BUS_BASE,n)]= g_ucConfData[263+4*i+2];               // K4 ·¢ 
+ 637   2          XBYTE[sw1021Chip + TX_K4_REG(B_BUS_BASE,n)]= g_ucConfData[263+4*i+2];               // K4 ·¢ 
+ 638   2          // TODO: N2 ·¢
+ 639   2          //XBYTE[WGS21891+0x0100+0x10*n+0x01]=g_ucConfData[263+4*i];                 // N2 ·¢
+ 640   2        
+ 641   2          // J2 ·¢ ºÍ ÆÚÍûÊÕ
+ 642   2          for(j=0;j<16;j++)
+ 643   2          {
+ 644   3            if(j==0) temp=0x80;
+ 645   3            else temp=0;
+ 646   3            
+ 647   3            // A 
+ 648   3            writeTxJ2(m, j, slot[i],  temp|g_ucConfData[515+2*i*16+j], 0);
+ 649   3            writeExpectJ2(m, j, slot[i],  temp|g_ucConfData[515+16+2*i*16+j], 0);
+ 650   3            // B
+ 651   3            writeTxJ2(m, j, slot[i],  temp|g_ucConfData[515+2*i*16+j], 1);
+ 652   3            writeExpectJ2(m, j, slot[i],  temp|g_ucConfData[515+16+2*i*16+j], 1);
+ 653   3          }
+ 654   2          
+ 655   2          if(g_ucConfData[137+i]==0)   //confdata[137+i]==0²»ÆÁ±ÎÖ§Â·i¸æ¾¯/·ñÔòÆÁ±ÎÖ§Â·i¸æ¾¯//
+ 656   2          {
+ 657   3            g_ucLineMask[i]=0;
+ 658   3            g_ucState[141+i]=0;
+ 659   3          }
+ 660   2          else
+ 661   2          {
+ 662   3            g_ucLineMask[i]=1;
+ 663   3            g_ucState[141+i]=1;
  664   3          }
- 665   2        }        
- 666   1      
- 667   1        ulEsLimit=256*g_ucConfData[131]+g_ucConfData[132];    //´ÓÍø¹ÜÉèulEsLimitÃÅÏÞ//
- 668   1        ulSesLimit=256*g_ucConfData[134]+g_ucConfData[135];   //´ÓÍø¹ÜÉèulSesLimitÃÅÏÞ//
- 669   1      
- 670   1        //if((g_ucConfData[136]==0)&&TUALMO&&WP) TUALMO=0;  //IO2=TUALMO  confdata[108]=ÅÌ±£»¤Ä£Ê½²»±£»¤
-C51 COMPILER V9.54   GF2488_01F1_E1_RST                                                    04/15/2016 18:54:06 PAGE 12  
+ 665   2        //if(g_ucConfData[200+i]==0)     //confdata[200+i]==1Ö§Â·i×°ÔØ/·ñÔò²»×°ÔØ//
+ 666   2        //XBYTE[WGS21891+0x0100+0x10*n+0x00]=0x00;
+ 667   2        // else  XBYTE[WGS21891+0x0100+0x10*n+0x00]=0x04;
+ 668   2      
+ 669   2        }
+ 670   1      
+C51 COMPILER V9.54   GF2488_01F1_E1_RST                                                    04/16/2016 16:30:00 PAGE 12  
 
  671   1      
  672   1      
- 673   1        // g_ucConfChange=0;                          
- 674   1              
- 675   1      
- 676   1        if(first_conf==0) first_conf=1; 
- 677   1      }
- 678          
- 679          
- 680          /*****************************************************************
- 681          ** º¯ÊýÃû:UserHdlc
- 682          ** Êä¡¡Èë: ÎÞ
- 683          ** Êä¡¡³ö: ÎÞ
- 684          ** ¹¦ÄÜÃèÊö£ºµ¥ÅÌÌØÊâÃüÁî´¦Àí
- 685          ** È«¾Ö±äÁ¿£ºÎÞ
- 686          ** µ÷ÓÃÄ£¿é£ºÎÞ
- 687          ** ×÷¡¡Õß£ºcaijun.Li
- 688          ** ÈÕ¡¡ÆÚ£º2016.3.19
- 689          ** ÐÞ¡¡¸Ä£º
- 690          ** ÈÕ¡¡ÆÚ£º
- 691          ** °æ  ±¾£º1.0
- 692          ****************************************************************/
- 693          void UserHdlc(void)
- 694          {
- 695   1        unsigned char i,m,n,temp;
- 696   1        unsigned int addr;
- 697   1      
- 698   1        if (g_ucHdlcBuf[CMD_TYPE]==COMM_CATA)
- 699   1        {
- 700   2          if (g_ucHdlcBuf[CMD_CODE]==RTRV_OCONF)
- 701   2          {
- 702   3            g_ucHdlcBuf[CHARACTER1]=CMD_RIGHT;
- 703   3          }
- 704   2          else if (g_ucHdlcBuf[CMD_CODE]==SET_OCONF)
- 705   2          {
- 706   3            g_ucHdlcBuf[CHARACTER1]=CMD_RIGHT;                                               
- 707   3          }
- 708   2        }
+ 673   1        for(j=0;j<ALMTYPENUM;j++) 
+ 674   1        {
+ 675   2           
+ 676   2           for(ilong=29;ilong<(29+ALMTYPENUM);ilong++)
+ 677   2           {    
+ 678   3              if(g_ucConfData[ilong]==g_ucAlmCode[j])   //´ÓÍø¹ÜÉè¸æ¾¯ÆÁ±Î//
+ 679   3              {
+ 680   4               g_ucAlmMask[j]=1;                              
+ 681   4               break;     
+ 682   4              }
+ 683   3              else
+ 684   3              g_ucAlmMask[j]=0;
+ 685   3      
+ 686   3           }
+ 687   2        }      
+ 688   1                          
+ 689   1        for(j=0;j<PMTYPENUM;j++)  
+ 690   1        {
+ 691   2      
+ 692   2          for(ilong=54;ilong<(54+PMTYPENUM);ilong++)
+ 693   2          {   
+ 694   3            if(g_ucConfData[ilong]==g_ucPmCode[j])   //´ÓÍø¹ÜÉèÐÔÄÜÆÁ±Î//
+ 695   3            {
+ 696   4              g_ucPmMask[j]=1;                              
+ 697   4              break;    
+ 698   4            }
+ 699   3            else
+ 700   3              g_ucPmMask[j]=0;
+ 701   3          }
+ 702   2        }        
+ 703   1      
+ 704   1        ulEsLimit=256*g_ucConfData[131]+g_ucConfData[132];    //´ÓÍø¹ÜÉèulEsLimitÃÅÏÞ//
+ 705   1        ulSesLimit=256*g_ucConfData[134]+g_ucConfData[135];   //´ÓÍø¹ÜÉèulSesLimitÃÅÏÞ//
+ 706   1      
+ 707   1        //if((g_ucConfData[136]==0)&&TUALMO&&WP) TUALMO=0;  //IO2=TUALMO  confdata[108]=ÅÌ±£»¤Ä£Ê½²»±£»¤
+ 708   1      
  709   1      
- 710   1      
- 711   1        switch(g_ucHdlcBuf[5])
- 712   1        {
- 713   2          case 0x00:    /*SET_LOOP*/
- 714   2            if(g_ucHdlcBuf[6]==0x34)
- 715   2            { // Éè±¸»·»Ø
- 716   3              if(((g_usRxDataLen)==0)||((g_usRxDataLen)>63)) 
- 717   3                g_ucHdlcBuf[10]=0x80; 
- 718   3              else                
- 719   3                for(i=0;i<(g_usRxDataLen);i++)
- 720   3                {
- 721   4                  temp=g_ucHdlcBuf[14+i]-1;
- 722   4                  m=temp/21;
- 723   4                  n=temp%21;
- 724   4      
- 725   4                  sw1021Chip = SW1021_CHIP_ADDR(m);
- 726   4                  if(g_ucHdlcBuf[7]==0x01){
- 727   5                    XBYTE[sw1021Chip + PORT_TEST_REG(n)] |= LnLBK;
- 728   5                  }else{
- 729   5                    XBYTE[sw1021Chip + PORT_TEST_REG(n)] &= (~LnLBK);
- 730   5                  }
- 731   4                  g_ucHdlcBuf[10]=0x00;
- 732   4                }
-C51 COMPILER V9.54   GF2488_01F1_E1_RST                                                    04/15/2016 18:54:06 PAGE 13  
+ 710   1        // g_ucConfChange=0;                          
+ 711   1              
+ 712   1      
+ 713   1        if(first_conf==0) first_conf=1; 
+ 714   1      }
+ 715          
+ 716          
+ 717          /*****************************************************************
+ 718          ** º¯ÊýÃû:UserHdlc
+ 719          ** Êä¡¡Èë: ÎÞ
+ 720          ** Êä¡¡³ö: ÎÞ
+ 721          ** ¹¦ÄÜÃèÊö£ºµ¥ÅÌÌØÊâÃüÁî´¦Àí
+ 722          ** È«¾Ö±äÁ¿£ºÎÞ
+ 723          ** µ÷ÓÃÄ£¿é£ºÎÞ
+ 724          ** ×÷¡¡Õß£ºcaijun.Li
+ 725          ** ÈÕ¡¡ÆÚ£º2016.3.19
+ 726          ** ÐÞ¡¡¸Ä£º
+ 727          ** ÈÕ¡¡ÆÚ£º
+ 728          ** °æ  ±¾£º1.0
+ 729          ****************************************************************/
+ 730          void UserHdlc(void)
+ 731          {
+ 732   1        unsigned char i,m,n,temp;
+C51 COMPILER V9.54   GF2488_01F1_E1_RST                                                    04/16/2016 16:30:00 PAGE 13  
 
- 733   3            }
- 734   2            else if(g_ucHdlcBuf[6]==0x33)       /*SET_LOOPL*/
- 735   2            { // ÏßÂ·»·»Ø 
- 736   3              if(((g_usRxDataLen)==0)||((g_usRxDataLen)>63)) 
- 737   3                g_ucHdlcBuf[10]=0x80; 
- 738   3              else                  
- 739   3                for(i=0;i<(g_usRxDataLen);i++)
- 740   3                {
- 741   4                  temp=g_ucHdlcBuf[14+i]-1;
- 742   4                  m=temp/21;
- 743   4                  n=temp%21;
- 744   4                  
- 745   4                  sw1021Chip = SW1021_CHIP_ADDR(m);
- 746   4                  if(g_ucHdlcBuf[7]==0x01){
- 747   5                    XBYTE[sw1021Chip + PORT_TEST_REG(n)] |= E1LBK;
- 748   5                  }else{
- 749   5                    XBYTE[sw1021Chip + PORT_TEST_REG(n)] &= (~E1LBK);
- 750   5                  }
- 751   4                  g_ucHdlcBuf[10]=0x00;
- 752   4                }
- 753   3            }
- 754   2      
- 755   2            break;
- 756   2      
- 757   2          case 0x77:                /**Í¸Ã÷Ö¡ÃüÁî**/
- 758   2            addr=256*g_ucHdlcBuf[14]+g_ucHdlcBuf[15];  // commbuf[14]£¬commbuf[15]Ëù´æ·Å µÄ µØÖ·
- 759   2            g_ucHdlcBuf[10]=0x00;
- 760   2            g_ucHdlcBuf[11]=0x00;
- 761   2            g_ucHdlcBuf[12]=0x00;
- 762   2            g_ucHdlcBuf[13]=0x11;
- 763   2            //¶Á16¸ö×Ö½Ú//  addr µØÖ·¿ªÊ¼¶ÁÈ¡16¸ö×Ö½ÚÊý¾Ý//
- 764   2            for(i=0;i<16;i++) 
- 765   2              g_ucHdlcBuf[14+i]=XBYTE[addr+i]; 
- 766   2            g_ucHdlcBuf[30]=P1;
- 767   2            break;                   
- 768   2          
- 769   2          case 0x88:
- 770   2            addr=256*g_ucHdlcBuf[14]+g_ucHdlcBuf[15];
- 771   2            XBYTE[addr]=g_ucHdlcBuf[16];       //½«commbuf[16]´æ·ÅµÄÊý¾ÝËÍÈëcommbuf[14]£¬//
- 772   2            g_ucHdlcBuf[10]=0x00;              //commbuf[15]Ëù´æ·ÅµÄWGS21891µÄµØÖ·µ¥ÔªÖÐ//
- 773   2            g_ucHdlcBuf[11]=0x00;
- 774   2            g_ucHdlcBuf[12]=0x00;
- 775   2            g_ucHdlcBuf[13]=0x10;              //¶Á16¸ö×Ö½Ú//
- 776   2            for(i=0;i<16;i++) 
- 777   2              g_ucHdlcBuf[14+i]=XBYTE[addr+i]; //´Ócommbuf[14]£¬commbuf[15]µÄµØÖ·¿ªÊ¼¶ÁÈ¡16¸ö×Ö½ÚÊý¾Ý//
- 778   2            break;
- 779   2      /*
- 780   2          case 0X99:
- 781   2            while(1)
- 782   2            {;} 
- 783   2            if((g_usRxDataLen==0)||(g_usRxDataLen>63)) 
- 784   2              g_ucHdlcBuf[10]=0x80; 
- 785   2            else                
- 786   2              for(i=0;i<(g_usRxDataLen);i++)
- 787   2              {
- 788   2                temp=g_ucHdlcBuf[14+i]-1;
- 789   2                m=temp/21;
- 790   2                n=temp%21;
- 791   2                sw1021Chip = SW1021_CHIP_ADDR(m);
- 792   2                
- 793   2                g_ucHdlcBuf[17]=XBYTE[WGS21891+0x04];
- 794   2                g_ucHdlcBuf[18]=0xbb;
-C51 COMPILER V9.54   GF2488_01F1_E1_RST                                                    04/15/2016 18:54:06 PAGE 14  
+ 733   1        unsigned int addr;
+ 734   1      
+ 735   1        if (g_ucHdlcBuf[CMD_TYPE]==COMM_CATA)
+ 736   1        {
+ 737   2          if (g_ucHdlcBuf[CMD_CODE]==RTRV_OCONF)
+ 738   2          {
+ 739   3            g_ucHdlcBuf[CHARACTER1]=CMD_RIGHT;
+ 740   3          }
+ 741   2          else if (g_ucHdlcBuf[CMD_CODE]==SET_OCONF)
+ 742   2          {
+ 743   3            g_ucHdlcBuf[CHARACTER1]=CMD_RIGHT;                                               
+ 744   3          }
+ 745   2        }
+ 746   1      
+ 747   1      
+ 748   1        switch(g_ucHdlcBuf[5])
+ 749   1        {
+ 750   2          case 0x00:    /*SET_LOOP*/
+ 751   2            if(g_ucHdlcBuf[6]==0x34)
+ 752   2            { // Éè±¸»·»Ø
+ 753   3              if(((g_usRxDataLen)==0)||((g_usRxDataLen)>63)) 
+ 754   3                g_ucHdlcBuf[10]=0x80; 
+ 755   3              else                
+ 756   3                for(i=0;i<(g_usRxDataLen);i++)
+ 757   3                {
+ 758   4                  temp=g_ucHdlcBuf[14+i]-1;
+ 759   4                  m=temp/21;
+ 760   4                  n=temp%21;
+ 761   4      
+ 762   4                  sw1021Chip = SW1021_CHIP_ADDR(m);
+ 763   4                  if(g_ucHdlcBuf[7]==0x01){
+ 764   5                    XBYTE[sw1021Chip + PORT_TEST_REG(n)] |= LnLBK;
+ 765   5                  }else{
+ 766   5                    XBYTE[sw1021Chip + PORT_TEST_REG(n)] &= (~LnLBK);
+ 767   5                  }
+ 768   4                  g_ucHdlcBuf[10]=0x00;
+ 769   4                }
+ 770   3            }
+ 771   2            else if(g_ucHdlcBuf[6]==0x33)       /*SET_LOOPL*/
+ 772   2            { // ÏßÂ·»·»Ø 
+ 773   3              if(((g_usRxDataLen)==0)||((g_usRxDataLen)>63)) 
+ 774   3                g_ucHdlcBuf[10]=0x80; 
+ 775   3              else                  
+ 776   3                for(i=0;i<(g_usRxDataLen);i++)
+ 777   3                {
+ 778   4                  temp=g_ucHdlcBuf[14+i]-1;
+ 779   4                  m=temp/21;
+ 780   4                  n=temp%21;
+ 781   4                  
+ 782   4                  sw1021Chip = SW1021_CHIP_ADDR(m);
+ 783   4                  if(g_ucHdlcBuf[7]==0x01){
+ 784   5                    XBYTE[sw1021Chip + PORT_TEST_REG(n)] |= E1LBK;
+ 785   5                  }else{
+ 786   5                    XBYTE[sw1021Chip + PORT_TEST_REG(n)] &= (~E1LBK);
+ 787   5                  }
+ 788   4                  g_ucHdlcBuf[10]=0x00;
+ 789   4                }
+ 790   3            }
+ 791   2      
+ 792   2            break;
+ 793   2      
+ 794   2          case 0x77:                /**Í¸Ã÷Ö¡ÃüÁî**/
+C51 COMPILER V9.54   GF2488_01F1_E1_RST                                                    04/16/2016 16:30:00 PAGE 14  
 
- 795   2                if(g_ucHdlcBuf[7]==0x01)
- 796   2                {
- 797   2                  if(n<8)
- 798   2                  {XBYTE[WGS21891+0x04]|=(0x01<<n);g_ucHdlcBuf[18]=0xff;}
- 799   2                  else
- 800   2                  XBYTE[WGS21891+0x05]|=(0x01<<(n-8));
- 801   2                }
- 802   2                else
- 803   2                {
- 804   2                  if(n<8)
- 805   2                  XBYTE[WGS21891+0x04]&=(~(0x01<<n));
- 806   2                  else
- 807   2                  XBYTE[WGS21891+0x05]&=(~(0x01<<(n-8)));
- 808   2                }
- 809   2                
- 810   2              }
- 811   2            g_ucHdlcBuf[10]=0x00;
- 812   2            g_ucHdlcBuf[13]=6;
- 813   2            g_ucHdlcBuf[14]=0xaa;
- 814   2            g_ucHdlcBuf[15]=m;
- 815   2            g_ucHdlcBuf[16]=n;
- 816   2            //g_ucHdlcBuf[19]=XBYTE[WGS21891+0x04];
- 817   2            break;
- 818   2            */
- 819   2      
- 820   2        }
- 821   1      
- 822   1      }
- 823          
- 824          /*****************************************************************
- 825          ** º¯ÊýÃû:SELF_CONF
- 826          ** Êä¡¡Èë: ÎÞ
- 827          ** Êä¡¡³ö: ÎÞ
- 828          ** ¹¦ÄÜÃèÊö£ºµ¥ÅÌÉÏµçÄ¬ÈÏÅäÖÃ
- 829          ** È«¾Ö±äÁ¿£ºg_ucConfData[]
- 830          ** µ÷ÓÃÄ£¿é£ºÎÞ
- 831          ** ×÷¡¡Õß£ºÎÌÒæêÍ
- 832          ** ÈÕ¡¡ÆÚ£º2002.5.25
- 833          ** ÐÞ¡¡¸Ä£º
- 834          ** ÈÕ¡¡ÆÚ£º
- 835          ** °æ  ±¾£º1.0
- 836          ** ×¢  Òâ£ºËùÓÐ¸æ¾¯ºÍÐÔÄÜµÄ³õÊ¼»¯Ðè°²ÏßÂ·ºÅË³Ðò
- 837          ****************************************************************/
- 838          void SelfConf()
- 839          {
- 840   1      
- 841   1        unsigned int i,j;
- 842   1        char ctt[18];
- 843   1        unsigned char ucii;
- 844   1        //  first_conf=0;
- 845   1        g_ucConfData[22]=BOARDCODE;/*BDINF5*/
- 846   1        g_ucConfData[0]=0xfe;
- 847   1      
- 848   1      
- 849   1        sprintf(ctt,BoardSn);
- 850   1        for(ucii=0;ucii<15;ucii++) g_ucState[ucii]=ctt[ucii];  /*ÅÌºÅ*/
- 851   1      
- 852   1        sprintf(ctt,PcbSn);   
- 853   1        for(ucii=0;ucii<15;ucii++) g_ucState[15+ucii]=ctt[ucii]; /*°åºÅ*/
- 854   1      
- 855   1        sprintf(ctt,PcbTime);   
- 856   1        for(ucii=0;ucii<10;ucii++) g_ucState[30+ucii]=ctt[ucii]; /*ÖÆ°åÊ±¼ä*/
-C51 COMPILER V9.54   GF2488_01F1_E1_RST                                                    04/15/2016 18:54:06 PAGE 15  
+ 795   2            addr=256*g_ucHdlcBuf[14]+g_ucHdlcBuf[15];  // commbuf[14]£¬commbuf[15]Ëù´æ·Å µÄ µØÖ·
+ 796   2            g_ucHdlcBuf[10]=0x00;
+ 797   2            g_ucHdlcBuf[11]=0x00;
+ 798   2            g_ucHdlcBuf[12]=0x00;
+ 799   2            g_ucHdlcBuf[13]=0x11;
+ 800   2            //¶Á16¸ö×Ö½Ú//  addr µØÖ·¿ªÊ¼¶ÁÈ¡16¸ö×Ö½ÚÊý¾Ý//
+ 801   2            for(i=0;i<16;i++) 
+ 802   2              g_ucHdlcBuf[14+i]=XBYTE[addr+i]; 
+ 803   2            g_ucHdlcBuf[30]=P1;
+ 804   2            break;                   
+ 805   2          
+ 806   2          case 0x88:
+ 807   2            addr=256*g_ucHdlcBuf[14]+g_ucHdlcBuf[15];
+ 808   2            XBYTE[addr]=g_ucHdlcBuf[16];       //½«commbuf[16]´æ·ÅµÄÊý¾ÝËÍÈëcommbuf[14]£¬//
+ 809   2            g_ucHdlcBuf[10]=0x00;              //commbuf[15]Ëù´æ·ÅµÄWGS21891µÄµØÖ·µ¥ÔªÖÐ//
+ 810   2            g_ucHdlcBuf[11]=0x00;
+ 811   2            g_ucHdlcBuf[12]=0x00;
+ 812   2            g_ucHdlcBuf[13]=0x10;              //¶Á16¸ö×Ö½Ú//
+ 813   2            for(i=0;i<16;i++) 
+ 814   2              g_ucHdlcBuf[14+i]=XBYTE[addr+i]; //´Ócommbuf[14]£¬commbuf[15]µÄµØÖ·¿ªÊ¼¶ÁÈ¡16¸ö×Ö½ÚÊý¾Ý//
+ 815   2            break;
+ 816   2      /*
+ 817   2          case 0X99:
+ 818   2            while(1)
+ 819   2            {;} 
+ 820   2            if((g_usRxDataLen==0)||(g_usRxDataLen>63)) 
+ 821   2              g_ucHdlcBuf[10]=0x80; 
+ 822   2            else                
+ 823   2              for(i=0;i<(g_usRxDataLen);i++)
+ 824   2              {
+ 825   2                temp=g_ucHdlcBuf[14+i]-1;
+ 826   2                m=temp/21;
+ 827   2                n=temp%21;
+ 828   2                sw1021Chip = SW1021_CHIP_ADDR(m);
+ 829   2                
+ 830   2                g_ucHdlcBuf[17]=XBYTE[WGS21891+0x04];
+ 831   2                g_ucHdlcBuf[18]=0xbb;
+ 832   2                if(g_ucHdlcBuf[7]==0x01)
+ 833   2                {
+ 834   2                  if(n<8)
+ 835   2                  {XBYTE[WGS21891+0x04]|=(0x01<<n);g_ucHdlcBuf[18]=0xff;}
+ 836   2                  else
+ 837   2                  XBYTE[WGS21891+0x05]|=(0x01<<(n-8));
+ 838   2                }
+ 839   2                else
+ 840   2                {
+ 841   2                  if(n<8)
+ 842   2                  XBYTE[WGS21891+0x04]&=(~(0x01<<n));
+ 843   2                  else
+ 844   2                  XBYTE[WGS21891+0x05]&=(~(0x01<<(n-8)));
+ 845   2                }
+ 846   2                
+ 847   2              }
+ 848   2            g_ucHdlcBuf[10]=0x00;
+ 849   2            g_ucHdlcBuf[13]=6;
+ 850   2            g_ucHdlcBuf[14]=0xaa;
+ 851   2            g_ucHdlcBuf[15]=m;
+ 852   2            g_ucHdlcBuf[16]=n;
+ 853   2            //g_ucHdlcBuf[19]=XBYTE[WGS21891+0x04];
+ 854   2            break;
+ 855   2            */
+ 856   2      
+C51 COMPILER V9.54   GF2488_01F1_E1_RST                                                    04/16/2016 16:30:00 PAGE 15  
 
- 857   1      
- 858   1        for(ucii=0;ucii<18;ucii++) ctt[ucii]=0;    /*°æ±¾ºÅbufÇåÁã*/
- 859   1        //sprintf(ctt,"R170609R1B/01F    "); 
- 860   1        //for(ucii=0;ucii<18;ucii++) g_ucState[40+ucii]=ctt[ucii];
- 861   1        sprintf(ctt,BoardSoftVer); 
- 862   1        for(ucii=0;ucii<18;ucii++) g_ucState[40+ucii]=ctt[ucii];
- 863   1        sprintf(ctt,__DATE__);   
- 864   1        for(ucii=0;ucii<11;ucii++) g_ucState[58+ucii]=ctt[ucii]; /*±à³ÌÊ±¼ä*/
- 865   1      
- 866   1        //g_ucState[69]=0x07;
- 867   1        //g_ucState[70]=0xD1;
- 868   1        //g_ucState[71]=0x06;
- 869   1        //g_ucState[72]=0x01;
- 870   1        //g_ucState[73]=0x08;
- 871   1        //g_ucState[74]=0x00;
- 872   1        //g_ucState[75]=0x00;
- 873   1        g_ucState[76]=0x01;
- 874   1        //g_ucState[77]=0x01;
- 875   1      
- 876   1      
+ 857   2        }
+ 858   1      
+ 859   1      }
+ 860          
+ 861          /*****************************************************************
+ 862          ** º¯ÊýÃû:SELF_CONF
+ 863          ** Êä¡¡Èë: ÎÞ
+ 864          ** Êä¡¡³ö: ÎÞ
+ 865          ** ¹¦ÄÜÃèÊö£ºµ¥ÅÌÉÏµçÄ¬ÈÏÅäÖÃ
+ 866          ** È«¾Ö±äÁ¿£ºg_ucConfData[]
+ 867          ** µ÷ÓÃÄ£¿é£ºÎÞ
+ 868          ** ×÷¡¡Õß£ºÎÌÒæêÍ
+ 869          ** ÈÕ¡¡ÆÚ£º2002.5.25
+ 870          ** ÐÞ¡¡¸Ä£º
+ 871          ** ÈÕ¡¡ÆÚ£º
+ 872          ** °æ  ±¾£º1.0
+ 873          ** ×¢  Òâ£ºËùÓÐ¸æ¾¯ºÍÐÔÄÜµÄ³õÊ¼»¯Ðè°²ÏßÂ·ºÅË³Ðò
+ 874          ****************************************************************/
+ 875          void SelfConf()
+ 876          {
  877   1      
- 878   1      
- 879   1      
- 880   1      
- 881   1        for(i=0;i<LINENUM;i++)           /*linecode=1..63*/
- 882   1          g_ucLineCode[i]=i+1;
- 883   1        for(i=0;i<LINENUM;i++)
- 884   1        {
- 885   2          g_ucLineMask[i]=0;          
- 886   2      
- 887   2        }
+ 878   1        unsigned int i,j;
+ 879   1        char ctt[18];
+ 880   1        unsigned char ucii;
+ 881   1        //  first_conf=0;
+ 882   1        g_ucConfData[22]=BOARDCODE;/*BDINF5*/
+ 883   1        g_ucConfData[0]=0xfe;
+ 884   1      
+ 885   1      
+ 886   1        sprintf(ctt,BoardSn);
+ 887   1        for(ucii=0;ucii<15;ucii++) g_ucState[ucii]=ctt[ucii];  /*ÅÌºÅ*/
  888   1      
- 889   1      
- 890   1      
- 891   1        /*for(i=0;i<LINENUM;i++)
- 892   1        for(j=0;j<PMNUM;j++) linepmmask[i][j]=0;*/         
- 893   1      
+ 889   1        sprintf(ctt,PcbSn);   
+ 890   1        for(ucii=0;ucii<15;ucii++) g_ucState[15+ucii]=ctt[ucii]; /*°åºÅ*/
+ 891   1      
+ 892   1        sprintf(ctt,PcbTime);   
+ 893   1        for(ucii=0;ucii<10;ucii++) g_ucState[30+ucii]=ctt[ucii]; /*ÖÆ°åÊ±¼ä*/
  894   1      
- 895   1        actnumber=63;             
- 896   1        almnumber=0;     
- 897   1      
- 898   1        ulEsLimit=0xff;
- 899   1        ulSesLimit=0xff;
- 900   1      
- 901   1        g_ucAlmCode[0]=0x03;                        /*PPI_LOS*/
- 902   1        g_ucAlmCode[1]=0x27;                        /*TU_LOP*/
- 903   1        g_ucAlmCode[2]=0x22;                        /*LP_SLM*/
- 904   1        g_ucAlmCode[3]=0x20;                        /*LP_RDI*/
- 905   1        g_ucAlmCode[4]=0x24;                        /*LP_UNEQ*/
- 906   1        //g_ucAlmCode[8]=0x04;                        /*PPI_AIS*/
- 907   1        g_ucAlmCode[5]=0x02;                        /*TU_AIS*/
- 908   1        //g_ucAlmCode[6]=0x0c;                        /*LP_RFI*/
- 909   1        g_ucAlmCode[7]=0x51;                        /*ES_LIMIT*/
- 910   1        //g_ucAlmCode[8]=0x52;      /*SES _LIMIT*/
- 911   1        g_ucAlmCode[9]=0x28;                       /*LP_TIM*/
- 912   1        g_ucAlmCode[10]=0x4f;                       /*LOOPL*/
- 913   1        g_ucAlmCode[11]=0x55;     /*LOOP*/
- 914   1        g_ucAlmCode[12]=0x01;                       //2V5µçÔ´¹ÊÕÏ¸æ¾¯//
- 915   1        g_ucAlmCode[13]=0x05;                       //5VI1µçÔ´¹ÊÕÏ¸æ¾¯//
- 916   1        g_ucAlmCode[14]=0x06;                       //5VI2µçÔ´¹ÊÕÏ¸æ¾¯//
- 917   1        g_ucAlmCode[6]=0x07;                 //trafic-onload//
- 918   1        g_ucAlmCode[8]=0x08;                /*LP_SD*/
-C51 COMPILER V9.54   GF2488_01F1_E1_RST                                                    04/15/2016 18:54:06 PAGE 16  
+ 895   1        for(ucii=0;ucii<18;ucii++) ctt[ucii]=0;    /*°æ±¾ºÅbufÇåÁã*/
+ 896   1        //sprintf(ctt,"R170609R1B/01F    "); 
+ 897   1        //for(ucii=0;ucii<18;ucii++) g_ucState[40+ucii]=ctt[ucii];
+ 898   1        sprintf(ctt,BoardSoftVer); 
+ 899   1        for(ucii=0;ucii<18;ucii++) g_ucState[40+ucii]=ctt[ucii];
+ 900   1        sprintf(ctt,__DATE__);   
+ 901   1        for(ucii=0;ucii<11;ucii++) g_ucState[58+ucii]=ctt[ucii]; /*±à³ÌÊ±¼ä*/
+ 902   1      
+ 903   1        //g_ucState[69]=0x07;
+ 904   1        //g_ucState[70]=0xD1;
+ 905   1        //g_ucState[71]=0x06;
+ 906   1        //g_ucState[72]=0x01;
+ 907   1        //g_ucState[73]=0x08;
+ 908   1        //g_ucState[74]=0x00;
+ 909   1        //g_ucState[75]=0x00;
+ 910   1        g_ucState[76]=0x01;
+ 911   1        //g_ucState[77]=0x01;
+ 912   1      
+ 913   1      
+ 914   1      
+ 915   1      
+ 916   1      
+ 917   1      
+ 918   1        for(i=0;i<LINENUM;i++)           /*linecode=1..63*/
+C51 COMPILER V9.54   GF2488_01F1_E1_RST                                                    04/16/2016 16:30:00 PAGE 16  
 
- 919   1      
- 920   1        g_ucPmCode[0]=0x08;                   /*BBE_LP*/
- 921   1        g_ucPmCode[1]=0x02;                   /*ES_LP*/
- 922   1        g_ucPmCode[2]=0x03;                   /*SES_LP*/
- 923   1        g_ucPmCode[3]=0x07;                   /*REI_LP*/
- 924   1        g_ucPmCode[4]=0x0b;                   /*HDB3CV*/
- 925   1        //g_ucPmCode[5]=0x06;                 /*UAS_LP*/
- 926   1        g_ucPmCode[5]=0x0c;                   /*UAS_LP*/
- 927   1        g_ucPmCode[6]=0xa2;                   /*CSES_LP*/
- 928   1      
- 929   1        g_ucAlmType[0]=0;   /*almtype£º0¼±¸æ£»4·Ç¼±¸æ£»8×´Ì¬Á¿*/
- 930   1        g_ucAlmType[1]=0;
- 931   1        g_ucAlmType[2]=0;
- 932   1        g_ucAlmType[3]=4;
- 933   1        g_ucAlmType[4]=4;
- 934   1        g_ucAlmType[5]=4;
- 935   1        g_ucAlmType[6]=8;
- 936   1        g_ucAlmType[7]=4;
- 937   1        g_ucAlmType[8]=4;
- 938   1        g_ucAlmType[9]=0;      /*LP_TIM*/
- 939   1        g_ucAlmType[10]=8;         
- 940   1        g_ucAlmType[11]=8;  
- 941   1        g_ucAlmType[12]=0;
- 942   1        g_ucAlmType[13]=0;
- 943   1        g_ucAlmType[14]=0;
- 944   1        //g_ucAlmType[15]=0;
- 945   1      
- 946   1        for(j=0;j<(LINENUM-1);j++)
- 947   1        {
- 948   2          for(i=0;i<(ALMTYPENUM-3);i++)
- 949   2          {
- 950   3            g_stuAlm[j*(ALMTYPENUM-3)+i].ucLineIndex=j;
- 951   3            g_stuAlm[j*(ALMTYPENUM-3)+i].ucAlmIndex=i;
- 952   3          }
- 953   2        }
- 954   1      
- 955   1        g_stuAlm[63*(ALMTYPENUM-3)+0].ucLineIndex=63;
- 956   1        g_stuAlm[63*(ALMTYPENUM-3)+0].ucAlmIndex=12;
- 957   1      
- 958   1        g_stuAlm[63*(ALMTYPENUM-3)+1].ucLineIndex=63;
- 959   1        g_stuAlm[63*(ALMTYPENUM-3)+1].ucAlmIndex=13;
- 960   1      
- 961   1        g_stuAlm[63*(ALMTYPENUM-3)+2].ucLineIndex=63;
- 962   1        g_stuAlm[63*(ALMTYPENUM-3)+2].ucAlmIndex=14;
- 963   1      
- 964   1      
- 965   1        for(j=0;j<(LINENUM-1);j++)
- 966   1        {
- 967   2          for(i=0;i<PMTYPENUM;i++)
- 968   2          {
- 969   3            g_stuPm[j*PMTYPENUM+i].ucLineIndex=j;
- 970   3            g_stuPm[j*PMTYPENUM+i].ucPmIndex=i;
- 971   3          }
- 972   2        }
- 973   1      
- 974   1        for(i=0;i<UASNUM;i++)
- 975   1        {
- 976   2          g_liError1s[i].ulDatlong=0;
- 977   2          ulSesLmt[i]=700; //ÈôÄ³Ò»ÃëÄÚÎóÂë¸öÊý´óÓÚµÈÓÚulSesLmt[i]Ê±,¸ÃÃëÊÇÑÏÖØÎóÂëÃë//
- 978   2        }                  
- 979   1      }
- 980          
-C51 COMPILER V9.54   GF2488_01F1_E1_RST                                                    04/15/2016 18:54:06 PAGE 17  
+ 919   1          g_ucLineCode[i]=i+1;
+ 920   1        for(i=0;i<LINENUM;i++)
+ 921   1        {
+ 922   2          g_ucLineMask[i]=0;          
+ 923   2      
+ 924   2        }
+ 925   1      
+ 926   1      
+ 927   1      
+ 928   1        /*for(i=0;i<LINENUM;i++)
+ 929   1        for(j=0;j<PMNUM;j++) linepmmask[i][j]=0;*/         
+ 930   1      
+ 931   1      
+ 932   1        actnumber=63;             
+ 933   1        almnumber=0;     
+ 934   1      
+ 935   1        ulEsLimit=0xff;
+ 936   1        ulSesLimit=0xff;
+ 937   1      
+ 938   1        g_ucAlmCode[0]=0x03;                        /*PPI_LOS*/
+ 939   1        g_ucAlmCode[1]=0x27;                        /*TU_LOP*/
+ 940   1        g_ucAlmCode[2]=0x22;                        /*LP_SLM*/
+ 941   1        g_ucAlmCode[3]=0x20;                        /*LP_RDI*/
+ 942   1        g_ucAlmCode[4]=0x24;                        /*LP_UNEQ*/
+ 943   1        //g_ucAlmCode[8]=0x04;                        /*PPI_AIS*/
+ 944   1        g_ucAlmCode[5]=0x02;                        /*TU_AIS*/
+ 945   1      #ifdef NEED_LP_RFI
+                g_ucAlmCode[15]=0x0c;                        /*LP_RFI*/
+              #endif
+ 948   1        g_ucAlmCode[7]=0x51;                        /*ES_LIMIT*/
+ 949   1        //g_ucAlmCode[8]=0x52;      /*SES _LIMIT*/
+ 950   1        g_ucAlmCode[9]=0x28;                       /*LP_TIM*/
+ 951   1        g_ucAlmCode[10]=0x4f;                       /*LOOPL*/
+ 952   1        g_ucAlmCode[11]=0x55;     /*LOOP*/
+ 953   1        g_ucAlmCode[12]=0x01;                       //2V5µçÔ´¹ÊÕÏ¸æ¾¯//
+ 954   1        g_ucAlmCode[13]=0x05;                       //5VI1µçÔ´¹ÊÕÏ¸æ¾¯//
+ 955   1        g_ucAlmCode[14]=0x06;                       //5VI2µçÔ´¹ÊÕÏ¸æ¾¯//
+ 956   1        g_ucAlmCode[6]=0x07;                 //trafic-onload//
+ 957   1        g_ucAlmCode[8]=0x08;                /*LP_SD*/
+ 958   1      
+ 959   1        g_ucPmCode[0]=0x08;                   /*BBE_LP*/
+ 960   1        g_ucPmCode[1]=0x02;                   /*ES_LP*/
+ 961   1        g_ucPmCode[2]=0x03;                   /*SES_LP*/
+ 962   1        g_ucPmCode[3]=0x07;                   /*REI_LP*/
+ 963   1        g_ucPmCode[4]=0x0b;                   /*HDB3CV*/
+ 964   1        //g_ucPmCode[5]=0x06;                 /*UAS_LP*/
+ 965   1        g_ucPmCode[5]=0x0c;                   /*UAS_LP*/
+ 966   1        g_ucPmCode[6]=0xa2;                   /*CSES_LP*/
+ 967   1      
+ 968   1        g_ucAlmType[0]=0;   /*almtype£º0¼±¸æ£»4·Ç¼±¸æ£»8×´Ì¬Á¿*/
+ 969   1        g_ucAlmType[1]=0;
+ 970   1        g_ucAlmType[2]=0;
+ 971   1        g_ucAlmType[3]=4;
+ 972   1        g_ucAlmType[4]=4;
+ 973   1        g_ucAlmType[5]=4;
+ 974   1        g_ucAlmType[6]=8;
+ 975   1        g_ucAlmType[7]=4;
+ 976   1        g_ucAlmType[8]=4;
+ 977   1        g_ucAlmType[9]=0;      /*LP_TIM*/
+ 978   1        g_ucAlmType[10]=8;         
+ 979   1        g_ucAlmType[11]=8;  
+ 980   1        g_ucAlmType[12]=0;
+C51 COMPILER V9.54   GF2488_01F1_E1_RST                                                    04/16/2016 16:30:00 PAGE 17  
 
- 981          
- 982          
- 983          /*****************************************************************
- 984          ** º¯ÊýÃû:InitioSw1021
- 985          ** Êä¡¡Èë: ÎÞ
- 986          ** Êä¡¡³ö: ÎÞ
- 987          ** ¹¦ÄÜÃèÊö£ºSW1021³õÊ¼»¯
- 988          ** È«¾Ö±äÁ¿£º
- 989          ** µ÷ÓÃÄ£¿é£º
- 990          ** ×÷¡¡Õß£ºcaijun.Li
- 991          ** ÈÕ¡¡ÆÚ£º2016.3.18
- 992          ** ÐÞ¡¡¸Ä£º
- 993          ** ÈÕ¡¡ÆÚ£º
- 994          ** °æ  ±¾£º1.0
- 995          ****************************************************************/
- 996          void InitioSw1021()
- 997          {
- 998   1      
- 999   1        unsigned int i,j;
-1000   1        unsigned char m,n;
-1001   1        first_conf=0;
+ 981   1        g_ucAlmType[13]=0;
+ 982   1        g_ucAlmType[14]=0;
+ 983   1        
+ 984   1      #ifdef NEED_LP_RFI
+                g_ucAlmType[15]=4;
+              #endif
+ 987   1      
+ 988   1        for(j=0;j<(LINENUM-1);j++)
+ 989   1        {
+ 990   2          for(i=0;i<(ALMTYPENUM-3);i++)
+ 991   2          {
+ 992   3            g_stuAlm[j*(ALMTYPENUM-3)+i].ucLineIndex=j;
+ 993   3            g_stuAlm[j*(ALMTYPENUM-3)+i].ucAlmIndex=i;
+ 994   3          }
+ 995   2        }
+ 996   1      
+ 997   1        g_stuAlm[63*(ALMTYPENUM-3)+0].ucLineIndex=63;
+ 998   1        g_stuAlm[63*(ALMTYPENUM-3)+0].ucAlmIndex=12;
+ 999   1      
+1000   1        g_stuAlm[63*(ALMTYPENUM-3)+1].ucLineIndex=63;
+1001   1        g_stuAlm[63*(ALMTYPENUM-3)+1].ucAlmIndex=13;
 1002   1      
-1003   1        for(i=0; i<CHIPS_ON_BOARD; i++)
-1004   1        {
-1005   2          XBYTE[SW1021_CHIP_ADDR(i) + SOFTWARE_RST_REG] = SRST_E1 | SRST_SDH_A | SRST_SDH_B;
-1006   2          Delay(10);
-1007   2          XBYTE[SW1021_CHIP_ADDR(i) + SOFTWARE_RST_REG] = RST_CANCLE;
-1008   2          
-1009   2          // TODO: ²¢ÐÐ×ÜÏßÊ±ÖÓÑ¡Ôñ
-1010   2          // SW1021Ö»Ö§³Ö19.44Mbit/s µÄ´«ÊäËÙÂÊ
-1011   2          
-1012   2          
-1013   2          XBYTE[SW1021_CHIP_ADDR(i) + BUS_CTRL_REG(A_BUS_BASE)] = UPBUS_TIMER | 0x02;  // ÉÏÐÐ×ÜÏß¶¨Ê±  + V5 ÆÚÍûÖ
+1003   1        g_stuAlm[63*(ALMTYPENUM-3)+2].ucLineIndex=63;
+1004   1        g_stuAlm[63*(ALMTYPENUM-3)+2].ucAlmIndex=14;
+1005   1      
+1006   1      
+1007   1        for(j=0;j<(LINENUM-1);j++)
+1008   1        {
+1009   2          for(i=0;i<PMTYPENUM;i++)
+1010   2          {
+1011   3            g_stuPm[j*PMTYPENUM+i].ucLineIndex=j;
+1012   3            g_stuPm[j*PMTYPENUM+i].ucPmIndex=i;
+1013   3          }
+1014   2        }
+1015   1      
+1016   1        for(i=0;i<UASNUM;i++)
+1017   1        {
+1018   2          g_liError1s[i].ulDatlong=0;
+1019   2          ulSesLmt[i]=700; //ÈôÄ³Ò»ÃëÄÚÎóÂë¸öÊý´óÓÚµÈÓÚulSesLmt[i]Ê±,¸ÃÃëÊÇÑÏÖØÎóÂëÃë//
+1020   2        }                  
+1021   1      }
+1022          
+1023          
+1024          
+1025          /*****************************************************************
+1026          ** º¯ÊýÃû:InitioSw1021
+1027          ** Êä¡¡Èë: ÎÞ
+1028          ** Êä¡¡³ö: ÎÞ
+1029          ** ¹¦ÄÜÃèÊö£ºSW1021³õÊ¼»¯
+1030          ** È«¾Ö±äÁ¿£º
+1031          ** µ÷ÓÃÄ£¿é£º
+1032          ** ×÷¡¡Õß£ºcaijun.Li
+1033          ** ÈÕ¡¡ÆÚ£º2016.3.18
+1034          ** ÐÞ¡¡¸Ä£º
+1035          ** ÈÕ¡¡ÆÚ£º
+1036          ** °æ  ±¾£º1.0
+1037          ****************************************************************/
+1038          void InitioSw1021()
+1039          {
+1040   1      
+1041   1        unsigned int i,j;
+1042   1        unsigned char m,n;
+C51 COMPILER V9.54   GF2488_01F1_E1_RST                                                    04/16/2016 16:30:00 PAGE 18  
+
+1043   1        first_conf=0;
+1044   1      
+1045   1        for(i=0; i<CHIPS_ON_BOARD; i++)
+1046   1        {
+1047   2          XBYTE[SW1021_CHIP_ADDR(i) + SOFTWARE_RST_REG] = SRST_E1 | SRST_SDH_A | SRST_SDH_B;
+1048   2          Delay(10);
+1049   2          XBYTE[SW1021_CHIP_ADDR(i) + SOFTWARE_RST_REG] = RST_CANCLE;
+1050   2          
+1051   2          // TODO: ²¢ÐÐ×ÜÏßÊ±ÖÓÑ¡Ôñ
+1052   2          // SW1021Ö»Ö§³Ö19.44Mbit/s µÄ´«ÊäËÙÂÊ
+1053   2          
+1054   2          
+1055   2          XBYTE[SW1021_CHIP_ADDR(i) + BUS_CTRL_REG(A_BUS_BASE)] = UPBUS_TIMER | 0x02;  // ÉÏÐÐ×ÜÏß¶¨Ê±  + V5 ÆÚÍûÖ
              -µ 0x02
-1014   2          XBYTE[SW1021_CHIP_ADDR(i) + BUS_CTRL_REG(B_BUS_BASE)] = UPBUS_TIMER | 0x02;  // ÉÏÐÐ×ÜÏß¶¨Ê±
-1015   2          
-1016   2          // ÉÏÏÂ»°Êý¾Ý×ÜÏß¾ùÑ¡ÔñÅ¼Ð£Ñé
-1017   2          XBYTE[SW1021_CHIP_ADDR(i) + SDH_CTRL_REG(A_BUS_BASE)] = UP_DELAY_2;
-1018   2          XBYTE[SW1021_CHIP_ADDR(i) + SDH_CTRL_REG(B_BUS_BASE)] = UP_DELAY_2;
-1019   2          
-1020   2          // 21¸ö¶Ë¿Ú´ÓA×ÜÏßÉÏÏÂ»°, Ê¹ÓÃ +- HDB3Ä£Ê½
-1021   2          for(j=0; j<21; j++){
-1022   3            XBYTE[SW1021_CHIP_ADDR(i) + PORT_CFG_REG(j)] = A_UP_DOWN | RnEN;
-1023   3            // ¹Ø±ÕÏßÂ·»·»ØºÍÏµÍ³»·»Ø
-1024   3            XBYTE[SW1021_CHIP_ADDR(i) + PORT_TEST_REG(j)] = 0x00;
-1025   3            // TODO: ÉÏÏÂ»°½»²æ×´Ì¬Ñ¡Ôñ £º ²»½»²æ
-1026   3            
-1027   3            // TODO: TUÍ¨µÀLOP\AIS¸æ¾¯¼ì²âÉèÖÃ£º EN_TUAIS  Ê¹ÄÜTU-AIS ÖÐ¶Ï
-1028   3            //                             EN_TULOP  Ê¹ÄÜTU-LOP ÖÐ¶Ï
-1029   3            //                             
-1030   3            XBYTE[SW1021_CHIP_ADDR(i) + PORT_E1_ALARM_INTERRPUT_MASK_REG(j)] = E1AISE | E1LOCE; //??
-1031   3            XBYTE[SW1021_CHIP_ADDR(i) + INTERRUPT_ENABLE_REG(A_BUS_BASE,j)] = LOPE | AISE;  
-1032   3            XBYTE[SW1021_CHIP_ADDR(i) + INTERRUPT_ENABLE_REG(B_BUS_BASE,j)] = LOPE | AISE;  
-1033   3            //TODO£º ¶ÁÇåÖÐ¶ÏÖ¸Ê¾
-1034   3            
-1035   3            //TODO: ²»Æô¶¯Ëæ»úÂë²âÊÔ£» Æô¶¯ÎóÂë¼ÆÊý
-1036   3            
-1037   3            //TODO: ÉÏ»°V5-TX2 ÉèÖÃ LP-REI
-1038   3            XBYTE[SW1021_CHIP_ADDR(i) + TX_V5_REG(A_BUS_BASE,j)] = REI_CNF | (0x02 << 1);
-1039   3            
-1040   3            //TODO£º ÉÏÏÂ»°Í¨µÀºÅ±àÂë
-1041   3            XBYTE[SW1021_CHIP_ADDR(i) + RXTU12_SLOT_REG(A_BUS_BASE,j)] = slot[i*21+j];  
-C51 COMPILER V9.54   GF2488_01F1_E1_RST                                                    04/15/2016 18:54:06 PAGE 18  
+1056   2          XBYTE[SW1021_CHIP_ADDR(i) + BUS_CTRL_REG(B_BUS_BASE)] = UPBUS_TIMER | 0x02;  // ÉÏÐÐ×ÜÏß¶¨Ê±
+1057   2          
+1058   2          // ÉÏÏÂ»°Êý¾Ý×ÜÏß¾ùÑ¡ÔñÅ¼Ð£Ñé
+1059   2          XBYTE[SW1021_CHIP_ADDR(i) + SDH_CTRL_REG(A_BUS_BASE)] = UP_DELAY_2;
+1060   2          XBYTE[SW1021_CHIP_ADDR(i) + SDH_CTRL_REG(B_BUS_BASE)] = UP_DELAY_2;
+1061   2          
+1062   2          // 21¸ö¶Ë¿Ú´ÓA×ÜÏßÉÏÏÂ»°, Ê¹ÓÃ +- HDB3Ä£Ê½
+1063   2          for(j=0; j<21; j++){
+1064   3            XBYTE[SW1021_CHIP_ADDR(i) + PORT_CFG_REG(j)] = A_UP_DOWN | RnEN;
+1065   3            // ¹Ø±ÕÏßÂ·»·»ØºÍÏµÍ³»·»Ø
+1066   3            XBYTE[SW1021_CHIP_ADDR(i) + PORT_TEST_REG(j)] = 0x00;
+1067   3            // TODO: ÉÏÏÂ»°½»²æ×´Ì¬Ñ¡Ôñ £º ²»½»²æ
+1068   3            
+1069   3            // TODO: TUÍ¨µÀLOP\AIS¸æ¾¯¼ì²âÉèÖÃ£º EN_TUAIS  Ê¹ÄÜTU-AIS ÖÐ¶Ï
+1070   3            //                             EN_TULOP  Ê¹ÄÜTU-LOP ÖÐ¶Ï
+1071   3            //                             
+1072   3            XBYTE[SW1021_CHIP_ADDR(i) + PORT_E1_ALARM_INTERRPUT_MASK_REG(j)] = E1AISE | E1LOCE; //??
+1073   3            XBYTE[SW1021_CHIP_ADDR(i) + INTERRUPT_ENABLE_REG(A_BUS_BASE,j)] = LOPE | AISE;  
+1074   3            XBYTE[SW1021_CHIP_ADDR(i) + INTERRUPT_ENABLE_REG(B_BUS_BASE,j)] = LOPE | AISE;  
+1075   3            //TODO£º ¶ÁÇåÖÐ¶ÏÖ¸Ê¾
+1076   3            
+1077   3            //TODO: ²»Æô¶¯Ëæ»úÂë²âÊÔ£» Æô¶¯ÎóÂë¼ÆÊý
+1078   3            
+1079   3            //TODO: ÉÏ»°V5-TX2 ÉèÖÃ LP-REI
+1080   3            XBYTE[SW1021_CHIP_ADDR(i) + TX_V5_REG(A_BUS_BASE,j)] = REI_CNF | (0x02 << 1);
+1081   3            
+1082   3            //TODO£º ÉÏÏÂ»°Í¨µÀºÅ±àÂë
+1083   3            XBYTE[SW1021_CHIP_ADDR(i) + RXTU12_SLOT_REG(A_BUS_BASE,j)] = slot[i*21+j];  
+1084   3            XBYTE[SW1021_CHIP_ADDR(i) + TXTU12_SLOT_REG(A_BUS_BASE,j)] = slot[i*21+j];  
+1085   3            XBYTE[SW1021_CHIP_ADDR(i) + RXTU12_SLOT_REG(B_BUS_BASE,j)] = slot[i*21+j];  
+1086   3            XBYTE[SW1021_CHIP_ADDR(i) + TXTU12_SLOT_REG(B_BUS_BASE,j)] = slot[i*21+j];  
+1087   3            
+1088   3            
+1089   3          }
+1090   2          // TODO:ÉÏÏÂ»°Ê±ÖÓÊý¾ÝÍ¬Ïà
+1091   2          XBYTE[SW1021_CHIP_ADDR(i) + E1_CTRL_REG] = TRZSEL | RRZSEL;
+1092   2          XBYTE[SW1021_CHIP_ADDR(i) + SDH_IF_CLK_REG] = 0x00;
+1093   2      
+1094   2        }
+1095   1        
+1096   1        // Ìî³äËùÓÐÖ§Â·µÄJ2×Ö½Ú£¨³õÊ¼»¯Çå0£©
+1097   1        for(i=0;i<63;i++)            
+1098   1        {
+1099   2          m=i/21;
+1100   2          n=i%21;
+1101   2          for(j=0;j<16;j++)
+1102   2          {
+1103   3            if(j==0)
+C51 COMPILER V9.54   GF2488_01F1_E1_RST                                                    04/16/2016 16:30:00 PAGE 19  
 
-1042   3            XBYTE[SW1021_CHIP_ADDR(i) + TXTU12_SLOT_REG(A_BUS_BASE,j)] = slot[i*21+j];  
-1043   3            XBYTE[SW1021_CHIP_ADDR(i) + RXTU12_SLOT_REG(B_BUS_BASE,j)] = slot[i*21+j];  
-1044   3            XBYTE[SW1021_CHIP_ADDR(i) + TXTU12_SLOT_REG(B_BUS_BASE,j)] = slot[i*21+j];  
-1045   3            
-1046   3            
-1047   3          }
-1048   2          // TODO:ÉÏÏÂ»°Ê±ÖÓÊý¾ÝÍ¬Ïà
-1049   2          XBYTE[SW1021_CHIP_ADDR(i) + E1_CTRL_REG] = TRZSEL | RRZSEL;
-1050   2          XBYTE[SW1021_CHIP_ADDR(i) + SDH_IF_CLK_REG] = 0x00;
-1051   2      
-1052   2        }
-1053   1        
-1054   1        // Ìî³äËùÓÐÖ§Â·µÄJ2×Ö½Ú£¨³õÊ¼»¯Çå0£©
-1055   1        for(i=0;i<63;i++)            
-1056   1        {
-1057   2          m=i/21;
-1058   2          n=i%21;
-1059   2          for(j=0;j<16;j++)
-1060   2          {
-1061   3            if(j==0)
-1062   3            { // A 
-1063   4              writeTxJ2(m, j, slot[i],  0x80, 0);
-1064   4              writeExpectJ2(m, j, slot[i],  0x80, 0);
-1065   4              // B
-1066   4              writeTxJ2(m, j, slot[i],  0x80, 1);
-1067   4              writeExpectJ2(m, j, slot[i],  0x80, 1);           
-1068   4            }
-1069   3            else
-1070   3            {
-1071   4              // A 
-1072   4              writeTxJ2(m, j, slot[i],  0x00, 0);
-1073   4              writeExpectJ2(m, j, slot[i],  0x00, 0);
-1074   4              // B
-1075   4              writeTxJ2(m, j, slot[i],  0x00, 1);
-1076   4              writeExpectJ2(m, j, slot[i],  0x00, 1); 
-1077   4            }
-1078   3          }
-1079   2        }
-1080   1      
-1081   1         IO8=1;
-1082   1         IO9=1;
-1083   1         IO10=1;
-1084   1         IO11=1;
-1085   1         IO12=1;
-1086   1         WRHIO;
-1087   1      
-1088   1      }
-1089          /*****************************************************************
-1090          ** º¯ÊýÃû:checkSW1021Init
-1091          ** Êä¡¡Èë: ÎÞ
-1092          ** Êä¡¡³ö: ÎÞ
-1093          ** ¹¦ÄÜÃèÊö£º¼ì²éSW1021³õÊ¼»¯³É¹¦
-1094          ** È«¾Ö±äÁ¿£º
-1095          ** µ÷ÓÃÄ£¿é£º
-1096          ** ×÷¡¡Õß£ºcaijun.Li
-1097          ** ÈÕ¡¡ÆÚ£º2016.3.18
-1098          ** ÐÞ¡¡¸Ä£º
-1099          ** ÈÕ¡¡ÆÚ£º
-1100          ** °æ  ±¾£º1.0
-1101          ****************************************************************/
-1102          static int checkSW1021Init(void)
-1103          {
-C51 COMPILER V9.54   GF2488_01F1_E1_RST                                                    04/15/2016 18:54:06 PAGE 19  
+1104   3            { // A 
+1105   4              writeTxJ2(m, j, slot[i],  0x80, 0);
+1106   4              writeExpectJ2(m, j, slot[i],  0x80, 0);
+1107   4              // B
+1108   4              writeTxJ2(m, j, slot[i],  0x80, 1);
+1109   4              writeExpectJ2(m, j, slot[i],  0x80, 1);           
+1110   4            }
+1111   3            else
+1112   3            {
+1113   4              // A 
+1114   4              writeTxJ2(m, j, slot[i],  0x00, 0);
+1115   4              writeExpectJ2(m, j, slot[i],  0x00, 0);
+1116   4              // B
+1117   4              writeTxJ2(m, j, slot[i],  0x00, 1);
+1118   4              writeExpectJ2(m, j, slot[i],  0x00, 1); 
+1119   4            }
+1120   3          }
+1121   2        }
+1122   1      
+1123   1         IO8=1;
+1124   1         IO9=1;
+1125   1         IO10=1;
+1126   1         IO11=1;
+1127   1         IO12=1;
+1128   1         WRHIO;
+1129   1      
+1130   1      }
+1131          /*****************************************************************
+1132          ** º¯ÊýÃû:checkSW1021Init
+1133          ** Êä¡¡Èë: ÎÞ
+1134          ** Êä¡¡³ö: ÎÞ
+1135          ** ¹¦ÄÜÃèÊö£º¼ì²éSW1021³õÊ¼»¯³É¹¦
+1136          ** È«¾Ö±äÁ¿£º
+1137          ** µ÷ÓÃÄ£¿é£º
+1138          ** ×÷¡¡Õß£ºcaijun.Li
+1139          ** ÈÕ¡¡ÆÚ£º2016.3.18
+1140          ** ÐÞ¡¡¸Ä£º
+1141          ** ÈÕ¡¡ÆÚ£º
+1142          ** °æ  ±¾£º1.0
+1143          ****************************************************************/
+1144          static int checkSW1021Init(void)
+1145          {
+1146   1        int ret = 0;
+1147   1        int i,j;
+1148   1        unsigned int reg;
+1149   1        for(i=0;i<CHIPS_ON_BOARD;i++)
+1150   1        {
+1151   2          reg = XBYTE[SW1021_CHIP_ADDR(i) + BUS_CTRL_REG(A_BUS_BASE)];
+1152   2          if( (reg & (UPBUS_TIMER | 0x02)) != (UPBUS_TIMER | 0x02)){
+1153   3            ret = -1;
+1154   3            break;
+1155   3          }
+1156   2          reg = XBYTE[SW1021_CHIP_ADDR(i) + BUS_CTRL_REG(B_BUS_BASE)];
+1157   2          if( (reg & (UPBUS_TIMER | 0x02)) != (UPBUS_TIMER | 0x02)){
+1158   3            ret = -1;
+1159   3            break;
+1160   3          }
+1161   2          
+1162   2          reg = XBYTE[SW1021_CHIP_ADDR(i) + SDH_CTRL_REG(A_BUS_BASE)];
+1163   2          if( (reg & UP_DELAY_2) != UP_DELAY_2){
+1164   3            ret = -1;
+1165   3            break;
+C51 COMPILER V9.54   GF2488_01F1_E1_RST                                                    04/16/2016 16:30:00 PAGE 20  
 
-1104   1        int ret = 0;
-1105   1        int i,j;
-1106   1        unsigned int reg;
-1107   1        for(i=0;i<CHIPS_ON_BOARD;i++)
-1108   1        {
-1109   2          reg = XBYTE[SW1021_CHIP_ADDR(i) + BUS_CTRL_REG(A_BUS_BASE)];
-1110   2          if( (reg & (UPBUS_TIMER | 0x02)) != (UPBUS_TIMER | 0x02)){
-1111   3            ret = -1;
-1112   3            break;
-1113   3          }
-1114   2          reg = XBYTE[SW1021_CHIP_ADDR(i) + BUS_CTRL_REG(B_BUS_BASE)];
-1115   2          if( (reg & (UPBUS_TIMER | 0x02)) != (UPBUS_TIMER | 0x02)){
-1116   3            ret = -1;
-1117   3            break;
-1118   3          }
-1119   2          
-1120   2          reg = XBYTE[SW1021_CHIP_ADDR(i) + SDH_CTRL_REG(A_BUS_BASE)];
-1121   2          if( (reg & UP_DELAY_2) != UP_DELAY_2){
-1122   3            ret = -1;
-1123   3            break;
-1124   3          }
-1125   2          
-1126   2          reg = XBYTE[SW1021_CHIP_ADDR(i) + SDH_CTRL_REG(B_BUS_BASE)];
-1127   2          if( (reg & UP_DELAY_2) != UP_DELAY_2){
-1128   3            ret = -1;
-1129   3            break;
-1130   3          }
-1131   2          
-1132   2          for(j=0; j<21; j++){
-1133   3            reg = XBYTE[SW1021_CHIP_ADDR(i) + PORT_CFG_REG(j)];
-1134   3            if((reg & (A_UP_DOWN | RnEN)) != (A_UP_DOWN | RnEN)){
-1135   4              ret = -1;
-1136   4              goto quit;
-1137   4            }
-1138   3          }
-1139   2      
-1140   2        }
-1141   1      quit:
-1142   1        return ret;
-1143   1      }
-1144          
-1145          /*****************************************************************
-1146          ** º¯ÊýÃû:MAIN
-1147          ** Êä¡¡Èë: ÎÞ
-1148          ** Êä¡¡³ö: ÎÞ
-1149          ** ¹¦ÄÜÃèÊö£ºÖ÷º¯Êý
-1150          ** È«¾Ö±äÁ¿£ºg_QuarterFlag
-1151          ** µ÷ÓÃÄ£¿é£ºSelfConf(),GetData(),ProcHisData(),Debug();
-1152          ** ×÷¡¡Õß£ºcaijun.Li
-1153          ** ÈÕ¡¡ÆÚ£º2016.3.18
-1154          ** ÐÞ¡¡¸Ä£º
-1155          ** ÈÕ¡¡ÆÚ£º
-1156          ** °æ  ±¾£º1.0
-1157          ****************************************************************/
-1158          void main()
-1159          {   
-1160   1        unsigned char i;  
-1161   1        int ret = 0;
-1162   1        //Delay(50);
-1163   1      
-1164   1        SelfConf(); 
-1165   1        
-C51 COMPILER V9.54   GF2488_01F1_E1_RST                                                    04/15/2016 18:54:06 PAGE 20  
+1166   3          }
+1167   2          
+1168   2          reg = XBYTE[SW1021_CHIP_ADDR(i) + SDH_CTRL_REG(B_BUS_BASE)];
+1169   2          if( (reg & UP_DELAY_2) != UP_DELAY_2){
+1170   3            ret = -1;
+1171   3            break;
+1172   3          }
+1173   2          
+1174   2          for(j=0; j<21; j++){
+1175   3            reg = XBYTE[SW1021_CHIP_ADDR(i) + PORT_CFG_REG(j)];
+1176   3            if((reg & (A_UP_DOWN | RnEN)) != (A_UP_DOWN | RnEN)){
+1177   4              ret = -1;
+1178   4              goto quit;
+1179   4            }
+1180   3          }
+1181   2      
+1182   2        }
+1183   1      quit:
+1184   1        return ret;
+1185   1      }
+1186          
+1187          /*****************************************************************
+1188          ** º¯ÊýÃû:MAIN
+1189          ** Êä¡¡Èë: ÎÞ
+1190          ** Êä¡¡³ö: ÎÞ
+1191          ** ¹¦ÄÜÃèÊö£ºÖ÷º¯Êý
+1192          ** È«¾Ö±äÁ¿£ºg_QuarterFlag
+1193          ** µ÷ÓÃÄ£¿é£ºSelfConf(),GetData(),ProcHisData(),Debug();
+1194          ** ×÷¡¡Õß£ºcaijun.Li
+1195          ** ÈÕ¡¡ÆÚ£º2016.3.18
+1196          ** ÐÞ¡¡¸Ä£º
+1197          ** ÈÕ¡¡ÆÚ£º
+1198          ** °æ  ±¾£º1.0
+1199          ****************************************************************/
+1200          void main()
+1201          {   
+1202   1        unsigned char i;  
+1203   1        int ret = 0;
+1204   1        //Delay(50);
+1205   1      
+1206   1        SelfConf(); 
+1207   1        
+1208   1        ret = checkSW1021Init();
+1209   1        if(ret != 0)
+1210   1          InitioSw1021();
+1211   1      
+1212   1        while (1)
+1213   1        {
+1214   2      #ifdef NEED_LP_RFI        
+                  XBYTE[0x7fe5] = 1;
+              #else
+1217   2          XBYTE[0x7b74] = 1;
+1218   2      #endif
+1219   2          
+1220   2          //ACT = ~ACT;
+1221   2          //RED = ~RED;
+1222   2          //YELLOW = ~YELLOW;
+1223   2              
+1224   2          
+1225   2          ret = checkSW1021Init();
+1226   2          if(ret != 0){ 
+1227   3            SelfConf(); 
+C51 COMPILER V9.54   GF2488_01F1_E1_RST                                                    04/16/2016 16:30:00 PAGE 21  
 
-1166   1        ret = checkSW1021Init();
-1167   1        if(ret != 0)
-1168   1          InitioSw1021();
-1169   1      
-1170   1        while (1)
-1171   1        {
-1172   2      //  TXENABLE
-1173   2      
-1174   2            
-1175   2          XBYTE[0x7b74] = 1;
-1176   2          
-1177   2          //ACT = ~ACT;
-1178   2          //RED = ~RED;
-1179   2          //YELLOW = ~YELLOW;
-1180   2              
-1181   2          
-1182   2          ret = checkSW1021Init();
-1183   2          if(ret != 0){ 
-1184   3            SelfConf(); 
-1185   3            InitioSw1021();
-1186   3            ConfSet();  
-1187   3          }
-1188   2        
-1189   2          GetData();
-1190   2          ProcAlmData();  
-1191   2      
-1192   2          if (g_QuarterFlag) 
-1193   2          {
-1194   3            UasQuarter();
-1195   3            for(i=0;i<LINENUM;i++)
-1196   3            {
-1197   4              g_stuPm[i*PMTYPENUM].Value.usint=g_usiBbe[i];
-1198   4              g_stuPm[i*PMTYPENUM+1].Value.usint=g_usiEs[i];
-1199   4              g_stuPm[i*PMTYPENUM+2].Value.usint=g_usiSes[i];
-1200   4            }
-1201   3            ProcHisData();  //½«µ±Ç°¸æ¾¯ºÍÐÔÄÜÊý¾Ý´æÎªÀúÊ·Êý¾Ý//
-1202   3            g_QuarterFlag=0;
-1203   3          }
-1204   2          
-1205   2          Debug();
-1206   2        }
-1207   1      }
-1208          
+1228   3            InitioSw1021();
+1229   3            ConfSet();  
+1230   3          }
+1231   2        
+1232   2          GetData();
+1233   2          ProcAlmData();  
+1234   2      
+1235   2          if (g_QuarterFlag) 
+1236   2          {
+1237   3            UasQuarter();
+1238   3            for(i=0;i<LINENUM;i++)
+1239   3            {
+1240   4              g_stuPm[i*PMTYPENUM].Value.usint=g_usiBbe[i];
+1241   4              g_stuPm[i*PMTYPENUM+1].Value.usint=g_usiEs[i];
+1242   4              g_stuPm[i*PMTYPENUM+2].Value.usint=g_usiSes[i];
+1243   4            }
+1244   3            ProcHisData();  //½«µ±Ç°¸æ¾¯ºÍÐÔÄÜÊý¾Ý´æÎªÀúÊ·Êý¾Ý//
+1245   3            g_QuarterFlag=0;
+1246   3          }
+1247   2          
+1248   2          Debug();
+1249   2        }
+1250   1      }
+1251          
 
 
 MODULE INFORMATION:   STATIC OVERLAYABLE

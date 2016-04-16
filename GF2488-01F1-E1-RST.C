@@ -17,11 +17,20 @@
 **         或 NewLib1.LIB for Mc68302
 ** 版  本：1.0
 ********************************************************************/
+//#define  NEED_LP_RFI   /**  !!! 单盘起不来了  */
+
 #define UASNUM  	63      	//要计算误码的线路数63//
 #define LINENUM  	64      	/*告警线路数为64*/
-#define ALMNUM    	759     /*总共63*ALMTYPENUM+3=759个告警*/
+#ifdef NEED_LP_RFI
+	#define ALMNUM    	822     /*总共63*(ALMTYPENUM-3)+3=759个告警*/
+	#define ALMTYPENUM      16      /*16种告警类型*/
+#else
+	#define ALMNUM    	759     /*总共63*(ALMTYPENUM-3)+3=759个告警*/
+	#define ALMTYPENUM      15      /*15种告警类型*/
+#endif
+
 #define PMNUM		441     		/*总共63*PMTYPENUM个性能*/
-#define ALMTYPENUM      15      /*15种告警类型*/
+
 #define PMTYPENUM       7       /*7种性能类型*/
 #define CONFLEN		2560	/*配置数据长度为2560*/
 #define STATELEN	338		/*状态数据长度为338*/
@@ -74,11 +83,19 @@ unsigned int sw1021Chip;
 unsigned int N1000[63],BIP[63],BIP_2_1S[63],BIP_2_1000S[63];
 unsigned char actnumber,almnumber,first_conf;
 /*
-code unsigned char slot[64]={1,22,43,4,25,46,7,28,49,10,31,52,13,34,55,16,37,58,19,40,61,2,23,44,5,26,
-	  47,8,29,50,11,32,53,14,35,56,17,38,59,20,41,62,3,24,45,6,27,48,9,30,51,
-	  12,33,54,15,36,57,18,39,60,21,42,63,0};
-		*/
+code unsigned char slot[64]={1,22,43,4,25,46,7,
+28,49,10,31,52,13,34,
+55,16,37,58,19,40,61,
 
+2,23,44,5,26,47,8,
+29,50,11,32,53,14,35,
+56,17,38,59,20,41,62,
+
+3,24,45,6,27,48,9,
+30,51,12,33,54,15,36,
+57,18,39,60,21,42,63,0};
+		*/
+/*
 code unsigned char slot[64]={0x00,0x20,0x40,0x01,0x21,0x41,0x02,
                      0x22,0x42,0x03,0x23,0x43,0x04,0x24,
                      0x44,0x05,0x25,0x45,0x06,0x26,0x46,
@@ -91,7 +108,21 @@ code unsigned char slot[64]={0x00,0x20,0x40,0x01,0x21,0x41,0x02,
                      0x30,0x50,0x11,0x31,0x51,0x12,0x32,
                      0x52,0x13,0x33,0x53,0x14,0x34,0x54,
 										 0
-                };						
+                };		
+*/
+code unsigned char slot[64]={0x00,0x07,0x0e,0x01,0x08,0x0f,0x02,
+                     0x09,0x10,0x03,0x0a,0x11,0x04,0x0b,
+                     0x12,0x05,0x0c,0x13,0x06,0x0d,0x14,
+
+                     0x20,0x27,0x2e,0x21,0x28,0x2f,0x22,
+                     0x29,0x30,0x23,0x2a,0x31,0x24,0x2b,
+                     0x32,0x25,0x2c,0x33,0x26,0x2d,0x34,
+
+                     0x40,0x47,0x4e,0x41,0x48,0x4f,0x42,
+                     0x49,0x50,0x43,0x4a,0x51,0x44,0x4b,
+                     0x52,0x45,0x4c,0x53,0x46,0x4d,0x54,
+										 0
+                };
 
 		
 static void writeTxJ2(char chip, char witchJ2, char Slot, char j2, char busB)
@@ -258,7 +289,9 @@ void GetData()
 				g_stuAlm[i*(ALMTYPENUM-3)+2].ucState=0;
 				g_stuAlm[i*(ALMTYPENUM-3)+3].ucState=0;
 				g_stuAlm[i*(ALMTYPENUM-3)+4].ucState=0;
-				//g_stuAlm[i*(ALMTYPENUM-3)+6].ucState=0; 
+				#ifdef NEED_LP_RFI
+				g_stuAlm[i*(ALMTYPENUM-3)+15].ucState=0; 
+				#endif
 				g_stuAlm[i*(ALMTYPENUM-3)+9].ucState=0;	
 			}
 			else
@@ -270,8 +303,12 @@ void GetData()
 				if(LPUNEQ) g_stuAlm[i*(ALMTYPENUM-3)+4].ucState=1;	 			       
 				else g_stuAlm[i*(ALMTYPENUM-3)+4].ucState=0;
 
-				// if(LPRFI) g_stuAlm[i*(ALMTYPENUM-3)+6].ucState=1;	 			       
-				// else g_stuAlm[i*(ALMTYPENUM-3)+6].ucState=0;       
+				/* 烽火老设备未使用RFI,不使用时将下面两句屏蔽 */
+#ifdef NEED_LP_RFI
+				 if(LPRFI) g_stuAlm[i*(ALMTYPENUM-3)+15].ucState=1;	 			       
+				 else g_stuAlm[i*(ALMTYPENUM-3)+15].ucState=0; 
+#endif
+				
 				if(LPTIM) g_stuAlm[i*(ALMTYPENUM-3)+9].ucState=1;	 			       
 				else g_stuAlm[i*(ALMTYPENUM-3)+9].ucState=0;	
 			}
@@ -905,7 +942,9 @@ void SelfConf()
 	g_ucAlmCode[4]=0x24;                        /*LP_UNEQ*/
 	//g_ucAlmCode[8]=0x04;                        /*PPI_AIS*/
 	g_ucAlmCode[5]=0x02;                        /*TU_AIS*/
-	//g_ucAlmCode[6]=0x0c;                        /*LP_RFI*/
+#ifdef NEED_LP_RFI
+	g_ucAlmCode[15]=0x0c;                        /*LP_RFI*/
+#endif
 	g_ucAlmCode[7]=0x51;                        /*ES_LIMIT*/
 	//g_ucAlmCode[8]=0x52;			/*SES _LIMIT*/
 	g_ucAlmCode[9]=0x28;                       /*LP_TIM*/
@@ -941,7 +980,10 @@ void SelfConf()
 	g_ucAlmType[12]=0;
 	g_ucAlmType[13]=0;
 	g_ucAlmType[14]=0;
-	//g_ucAlmType[15]=0;
+	
+#ifdef NEED_LP_RFI
+	g_ucAlmType[15]=4;
+#endif
 
 	for(j=0;j<(LINENUM-1);j++)
 	{
@@ -1169,10 +1211,11 @@ void main()
 
 	while (1)
 	{
-//	TXENABLE
-
-			
+#ifdef NEED_LP_RFI				
+		XBYTE[0x7fe5] = 1;
+#else
 		XBYTE[0x7b74] = 1;
+#endif
 		
 		//ACT = ~ACT;
 		//RED = ~RED;
