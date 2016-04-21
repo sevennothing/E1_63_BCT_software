@@ -18,7 +18,7 @@
 ** 版  本：1.0
 ********************************************************************/
 //#define  NEED_LP_RFI   /**  !!! 单盘起不来了  */
-
+#define SKIP_DEBUG_CHECK
 #define UASNUM  	63      	//要计算误码的线路数63//
 #define LINENUM  	64      	/*告警线路数为64*/
 #ifdef NEED_LP_RFI
@@ -42,7 +42,6 @@
 #define SW1021_CHIP_ADDR(num)  (SW1021 + 0x1000*(num))
 //#define SW1021_CHIP_ADDR(num)  (0xD000)
 #define CHIPS_ON_BOARD          3
-
 
 
 #include "commvar9.h"
@@ -180,7 +179,7 @@ static void writeExpectJ2(char chip, char witchJ2, char Slot, char j2, char busB
 ****************************************************************/
 void GetData()          
 {
-	unsigned char i,m,n,mi,ni,tmp,ADCLK,PPILOS,TULOP,LPSLM,LPTIM,LPTIU,LPRDI,LPRFI,LPUNEQ,TUAIS,PPIAIS,
+	unsigned char i,m,n,mi,ni,tmp,tmpi,ADCLK,PPILOS,TULOP,LPSLM,LPTIM,LPTIU,LPRDI,LPRFI,LPUNEQ,TUAIS,PPIAIS,
 	LOOP,LOOPL,tv5;
 	unsigned int  LPFEBE,HDB3;
 	actnumber=0;
@@ -226,10 +225,10 @@ void GetData()
 			LPRDI = tmp & RDII;
 			LPRFI = tmp & RFII;
 			LPUNEQ = tmp & UNEQI;
-		*/	
+		*/
 			
-			
-			tmp = XBYTE[sw1021Chip+TU12_J2_STATUS_REG(A_BUS_BASE, n)];
+			tmpi = XBYTE[sw1021Chip+TU12_J2_STATUS_REG2(A_BUS_BASE, n)];
+			tmp = XBYTE[sw1021Chip+TU12_J2_STATUS_REG(A_BUS_BASE, n)] | tmpi;
 			TULOP = tmp & LOPV;
 			TUAIS = tmp & AISV;
 			LPSLM = tmp & PLMV;
@@ -238,6 +237,7 @@ void GetData()
 			LPRDI = tmp & RDIV;
 			LPRFI = tmp & RFIV;
 			LPUNEQ = tmp & UNEQV;
+			
 			
 			//must be write BIPERR_COUNTER_REG ; see manual
 			XBYTE[sw1021Chip+BIPERR_COUNTER_REG(A_BUS_BASE, n)] = 0x00;
@@ -813,10 +813,10 @@ void UserHdlc(void)
 			for(i=0;i<16;i++) 
 				g_ucHdlcBuf[14+i]=XBYTE[addr+i]; //从commbuf[14]，commbuf[15]的地址开始读取16个字节数据//
 			break;
-/*
+
 		case 0X99:
 			while(1)
-			{;} 
+			{;}
 			if((g_usRxDataLen==0)||(g_usRxDataLen>63)) 
 				g_ucHdlcBuf[10]=0x80; 
 			else			          
@@ -826,33 +826,31 @@ void UserHdlc(void)
 					m=temp/21;
 					n=temp%21;
 					sw1021Chip = SW1021_CHIP_ADDR(m);
-					
-					g_ucHdlcBuf[17]=XBYTE[WGS21891+0x04];
+										
+					g_ucHdlcBuf[17]=XBYTE[sw1021Chip + PORT_TEST_REG(n)];
 					g_ucHdlcBuf[18]=0xbb;
+					
 					if(g_ucHdlcBuf[7]==0x01)
 					{
+						XBYTE[sw1021Chip + PORT_TEST_REG(n)] |= LnLBK;
 						if(n<8)
-						{XBYTE[WGS21891+0x04]|=(0x01<<n);g_ucHdlcBuf[18]=0xff;}
-						else
-						XBYTE[WGS21891+0x05]|=(0x01<<(n-8));
+							g_ucHdlcBuf[18]=0xff;
 					}
 					else
 					{
-						if(n<8)
-						XBYTE[WGS21891+0x04]&=(~(0x01<<n));
-						else
-						XBYTE[WGS21891+0x05]&=(~(0x01<<(n-8)));
+						XBYTE[sw1021Chip + PORT_TEST_REG(n)] &= (~LnLBK);
 					}
-					
+							
 				}
 			g_ucHdlcBuf[10]=0x00;
 			g_ucHdlcBuf[13]=6;
 			g_ucHdlcBuf[14]=0xaa;
 			g_ucHdlcBuf[15]=m;
 			g_ucHdlcBuf[16]=n;
-			//g_ucHdlcBuf[19]=XBYTE[WGS21891+0x04];
+			g_ucHdlcBuf[19]=XBYTE[sw1021Chip + PORT_TEST_REG(n)];
+			
 			break;
-			*/
+			
 
 	}
 
@@ -1211,11 +1209,13 @@ void main()
 
 	while (1)
 	{
-#ifdef NEED_LP_RFI				
-		XBYTE[0x7fe5] = 1;
-#else
-		XBYTE[0x7b74] = 1;
-#endif
+		#ifdef SKIP_DEBUG_CHECK
+			#ifdef NEED_LP_RFI				
+					XBYTE[0x7fe5] = 1;
+			#else
+					XBYTE[0x7b74] = 1;
+			#endif
+		#endif
 		
 		//ACT = ~ACT;
 		//RED = ~RED;
