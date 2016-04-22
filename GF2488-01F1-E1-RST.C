@@ -18,7 +18,9 @@
 ** 版  本：1.0
 ********************************************************************/
 //#define  NEED_LP_RFI   /**  !!! 单盘起不来了  */
+#define AIS_CONDITIONS
 #define SKIP_DEBUG_CHECK
+
 #define UASNUM  	63      	//要计算误码的线路数63//
 #define LINENUM  	64      	/*告警线路数为64*/
 #ifdef NEED_LP_RFI
@@ -237,6 +239,17 @@ void GetData()
 			LPRDI = tmp & RDIV;
 			LPRFI = tmp & RFIV;
 			LPUNEQ = tmp & UNEQV;
+		#ifdef AIS_CONDITIONS	
+			//AIS 产生条件 ---add by caijun.Li
+			if(((g_ucConfData[2531] & 0x80) && LPTIM) || ((g_ucConfData[2531] & 0x40) && LPUNEQ ) || ((g_ucConfData[2531] & 0x20) && LPSLM ) /* || ((g_ucConfData[2531] & 0x10) && LPSD )*/ ){
+				// 下插AIS
+				XBYTE[sw1021Chip + PORT_CFG_REG(n)] |= RAISEN;
+			}else{
+				// 停止下插AIS
+				XBYTE[sw1021Chip + PORT_CFG_REG(n)] &= ~RAISEN;
+			}
+			
+			#endif
 			
 			
 			//must be write BIPERR_COUNTER_REG ; see manual
@@ -261,11 +274,11 @@ void GetData()
 					if(WP==1)                        //非保护盘位时//
 					{
 						// 向第i通道上话方向插短时间的伪随机码
-						XBYTE[sw1021Chip + PORT_TEST_REG(n)] = PRBSEN | PRBST;
+						XBYTE[sw1021Chip + PORT_TEST_REG(n)] |= PRBSEN | PRBST;
 						g_stuAlm[i*(ALMTYPENUM-3)].ucState=0;//不告PPILOS//
 		
 						Delay(10);
-						XBYTE[sw1021Chip + PORT_TEST_REG(n)] = 0x00; //停插伪随机码
+						XBYTE[sw1021Chip + PORT_TEST_REG(n)] &=  ~(PRBSEN | PRBST); //停插伪随机码
 
 					}
 					else g_stuAlm[i*(ALMTYPENUM-3)].ucState=0;//不告PPILOS////保护盘位时//
@@ -621,13 +634,13 @@ void ConfSet(void)
 			g_ucState[141+i]=1;
 		}else{  // 支路打开
 			XBYTE[sw1021Chip + PORT_CFG_REG(n)] = A_UP_DOWN | RnEN;
-			XBYTE[sw1021Chip + TX_V5_REG(A_BUS_BASE,n)] = REI_CNF | (0x02 << 1);  // 注意信号标记值得配置
+			XBYTE[sw1021Chip + TX_V5_REG(A_BUS_BASE,n)] = (0x02 << 1);  // 注意信号标记值得配置
 			if(g_ucState[78+i]==0)//刚打开支路开关时插伪随机码
 			{
 				//TODO: 启动误码计数器
-				XBYTE[sw1021Chip + PORT_TEST_REG(n)] = PRBSEN | PRBST;
+				XBYTE[sw1021Chip + PORT_TEST_REG(n)] |= PRBSEN | PRBST;
 				Delay(5);
-				XBYTE[sw1021Chip + PORT_TEST_REG(n)] = 0x00;
+				XBYTE[sw1021Chip + PORT_TEST_REG(n)] &= ~(PRBSEN | PRBST);
 				g_ucState[78+i]=1;
 				g_ucLineMask[i]=0; 
 				g_ucState[141+i]=0;
@@ -910,9 +923,6 @@ void SelfConf()
 
 
 
-
-
-
 	for(i=0;i<LINENUM;i++)           /*linecode=1..63*/
 		g_ucLineCode[i]=i+1;
 	for(i=0;i<LINENUM;i++)
@@ -1053,9 +1063,13 @@ void InitioSw1021()
 		XBYTE[SW1021_CHIP_ADDR(i) + BUS_CTRL_REG(A_BUS_BASE)] = UPBUS_TIMER | 0x02;  // 上行总线定时  + V5 期望值 0x02
 		XBYTE[SW1021_CHIP_ADDR(i) + BUS_CTRL_REG(B_BUS_BASE)] = UPBUS_TIMER | 0x02;  // 上行总线定时
 		
+		XBYTE[SW1021_CHIP_ADDR(i) + SOMESET_REG(A_BUS_BASE)] = BLKBIP_BLOCK;  // BIP-2按块进行校验并计数
+		
+		XBYTE[SW1021_CHIP_ADDR(i) + RDI_RFI_CTRL_REG(A_BUS_BASE)] = MREI_AUTO | AISV_RDIEN | LOPV_RDIEN | LOMV_RDIEN | UNEQV_RDIEN | PLMV_RDIEN | RTIMV_RDIEN | RTIUV_RDIEN;
+		
 		// 上下话数据总线均选择偶校验
 		XBYTE[SW1021_CHIP_ADDR(i) + SDH_CTRL_REG(A_BUS_BASE)] = UP_DELAY_2;
-		XBYTE[SW1021_CHIP_ADDR(i) + SDH_CTRL_REG(B_BUS_BASE)] = UP_DELAY_2;
+		XBYTE[SW1021_CHIP_ADDR(i) + SDH_CTRL_REG(B_BUS_BASE)] = UP_DELAY_2;		
 		
 		// 21个端口从A总线上下话, 使用 +- HDB3模式
 		for(j=0; j<21; j++){
@@ -1075,7 +1089,7 @@ void InitioSw1021()
 			//TODO: 不启动随机码测试； 启动误码计数
 			
 			//TODO: 上话V5-TX2 设置 LP-REI
-			XBYTE[SW1021_CHIP_ADDR(i) + TX_V5_REG(A_BUS_BASE,j)] = REI_CNF | (0x02 << 1);
+			XBYTE[SW1021_CHIP_ADDR(i) + TX_V5_REG(A_BUS_BASE,j)] = (0x02 << 1);
 			
 			//TODO： 上下话通道号编码
 			XBYTE[SW1021_CHIP_ADDR(i) + RXTU12_SLOT_REG(A_BUS_BASE,j)] = slot[i*21+j];	

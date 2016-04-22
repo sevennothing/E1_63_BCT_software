@@ -115,6 +115,19 @@
 	#define TH4EN  (1 << 3)
 	//TODO: V5 期望值
 	
+#define  SOMESET_REG(SUB) ((SUB) + 0x02) 	/* 指针解释、复帧同步选择和V5 中标签适配控制寄存器及复帧同步状态寄存器   */
+	#define BLKBIP_BLOCK  (1 << 6)
+	
+#define  RDI_RFI_CTRL_REG(SUB) ((SUB) + 0x03) 	/* 指针解释、复帧同步选择和V5 中标签适配控制寄存器及复帧同步状态寄存器   */
+	#define MREI_AUTO  (1 << 7)
+	#define AISV_RDIEN  ( 1<< 6)
+	#define LOPV_RDIEN   (1 << 5)
+	#define LOMV_RDIEN    (1 << 4)
+	#define UNEQV_RDIEN   (1 << 3)
+	#define PLMV_RDIEN    (1 << 2)
+	#define RTIMV_RDIEN    (1 << 1)
+	#define RTIUV_RDIEN    (1 << 0)
+	
 /* 期望J2 */
 #define J2_RX_DATA_REG(SUB)		((SUB) + 6)
 #define J2_RX_CTRL_REG(SUB)		((SUB) + 7)

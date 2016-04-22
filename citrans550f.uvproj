@@ -323,7 +323,7 @@
               <MiscControls></MiscControls>
               <Define></Define>
               <Undefine></Undefine>
-              <IncludePath></IncludePath>
+              <IncludePath>..\单盘软件</IncludePath>
             </VariousControls>
           </Ax51>
           <Lx51>
