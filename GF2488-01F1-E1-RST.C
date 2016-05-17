@@ -18,7 +18,8 @@
 ** 版  本：1.0
 ********************************************************************/
 //#define  NEED_LP_RFI   /**  !!! 单盘起不来了  */
-#define AIS_CONDITIONS
+#define AIS_CONDITIONS      /** 与 AIS_CONDITIONS_AUTO 二选一  */
+//#define AIS_CONDITIONS_AUTO
 #define SKIP_DEBUG_CHECK
 
 #define UASNUM  	63      	//要计算误码的线路数63//
@@ -42,7 +43,6 @@
 #define SW1021	0xB000    //TODO：confirm
 
 #define SW1021_CHIP_ADDR(num)  (SW1021 + 0x1000*(num))
-//#define SW1021_CHIP_ADDR(num)  (0xD000)
 #define CHIPS_ON_BOARD          3
 
 
@@ -83,6 +83,7 @@ unsigned int ulEsLimit,ulSesLimit;
 unsigned int sw1021Chip;
 unsigned int N1000[63],BIP[63],BIP_2_1S[63],BIP_2_1000S[63];
 unsigned char actnumber,almnumber,first_conf;
+unsigned char g_haveTux;
 /*
 code unsigned char slot[64]={1,22,43,4,25,46,7,
 28,49,10,31,52,13,34,
@@ -184,6 +185,7 @@ void GetData()
 	unsigned char i,m,n,mi,ni,tmp,tmpi,ADCLK,PPILOS,TULOP,LPSLM,LPTIM,LPTIU,LPRDI,LPRFI,LPUNEQ,TUAIS,PPIAIS,
 	LOOP,LOOPL,tv5;
 	unsigned int  LPFEBE,HDB3;
+	unsigned char lopCnt = 0;
 	actnumber=0;
 	almnumber=0;
  	sw1021Chip = SW1021;
@@ -239,7 +241,11 @@ void GetData()
 			LPRDI = tmp & RDIV;
 			LPRFI = tmp & RFIV;
 			LPUNEQ = tmp & UNEQV;
+			
+			if(TULOP) lopCnt++;
+			
 		#ifdef AIS_CONDITIONS	
+		  /** 方法1： 手动 */
 			//AIS 产生条件 ---add by caijun.Li
 			if(((g_ucConfData[2531] & 0x80) && LPTIM) || ((g_ucConfData[2531] & 0x40) && LPUNEQ ) || ((g_ucConfData[2531] & 0x20) && LPSLM ) /* || ((g_ucConfData[2531] & 0x10) && LPSD )*/ ){
 				// 下插AIS
@@ -248,8 +254,8 @@ void GetData()
 				// 停止下插AIS
 				XBYTE[sw1021Chip + PORT_CFG_REG(n)] &= ~RAISEN;
 			}
-			
-			#endif
+				
+		#endif
 			
 			
 			//must be write BIPERR_COUNTER_REG ; see manual
@@ -356,7 +362,7 @@ void GetData()
 			}
 		}
 	}
-	
+
 	for(i=0;i<(LINENUM-1);i++)
 	{
 		m=i/21;
@@ -386,7 +392,7 @@ void GetData()
 	else g_ucState[77]=1;
                      
        
-	if((WP==0) &&(TUSWTI==0))	 //保护盘位时,如果没有倒换ACT灯慢闪//			
+	if((WP==0) && (TUSWTI==0))	 //保护盘位时,如果没有倒换ACT灯慢闪//			
 	{
 		g_ucState[76]=0;
 		g_LampEn=0;        
@@ -580,11 +586,60 @@ void GetData()
 ** 日　期：
 ** 版  本：1.0
 ****************************************************************/
-
 void UserFunc() using 1
 {
+	int i,j;
+	int tmp;
+	unsigned int chip  = SW1021;
+	static int docnt = 0;
+	if(g_haveTux){
+		if(docnt > 10){
+			docnt = 0;
+			g_haveTux = 0;
+		}
+		for(i=0; i<CHIPS_ON_BOARD; i++){
+			for(j=0; j< 21; j++){
+				tmp = XBYTE[chip+PORT_E1_ALARM_REG(j)];
+				if((tmp & RFFERR) == 0){
+					continue;
+				}else{
+					//XBYTE[SW1021_CHIP_ADDR(k) + SOFTWARE_RST_REG] = SRST_E1 | SRST_SDH_A | SRST_SDH_B;
+					XBYTE[SW1021 + SOFTWARE_RST_REG] = SRST_E1;
+					XBYTE[SW1021 + SOFTWARE_RST_REG] = RST_CANCLE;
+					
+					XBYTE[SW1021 + 0x1000 + SOFTWARE_RST_REG] = SRST_E1;
+					XBYTE[SW1021 + 0x1000 + SOFTWARE_RST_REG] = RST_CANCLE;
+					
+					XBYTE[SW1021 + 0x2000 + SOFTWARE_RST_REG] = SRST_E1;
+					XBYTE[SW1021 + 0x2000 + SOFTWARE_RST_REG] = RST_CANCLE;
+				
+					g_haveTux = 0;
+					docnt = 0;
+					return;
+				}
+			}
+			chip+=0x1000;
+		}
+		docnt++;
+	}
+	
 	return;
 }
+
+
+//static void ChecktuxAB (void) interrupt 9 using 3
+static void ChecktuxAB (void) interrupt 9
+{
+
+	EX3 = 0;
+	EXIF &= 0xDF;
+	g_haveTux = 1;
+
+
+	EX3 = 1;
+	return;
+}
+
 
 /*****************************************************************
 ** 函数名:CONF_SET
@@ -651,6 +706,20 @@ void ConfSet(void)
 		// TODO: N2 发
 		//XBYTE[WGS21891+0x0100+0x10*n+0x01]=g_ucConfData[263+4*i];                 // N2 发
 	
+	#ifdef AIS_CONDITIONS_AUTO
+		if((g_ucConfData[2531] & 0x80)){
+			XBYTE[sw1021Chip + RCV_INSET_AIS_REG(A_BUS_BASE,n)] |= J2RTIME;
+		}else{
+			XBYTE[sw1021Chip + RCV_INSET_AIS_REG(A_BUS_BASE,n)] |= J2RTIME;
+		}
+		if(g_ucConfData[2531] & 0x40){
+			XBYTE[sw1021Chip + RCV_INSET_AIS_REG(A_BUS_BASE,n)] |= UNEQAISE;
+		}
+		if(g_ucConfData[2531] & 0x20){
+			XBYTE[sw1021Chip + RCV_INSET_AIS_REG(A_BUS_BASE,n)] |= PLMAISE;
+		}
+	#endif
+	
 		// J2 发 和 期望收
 		for(j=0;j<16;j++)
 		{
@@ -716,6 +785,7 @@ void ConfSet(void)
 
 	ulEsLimit=256*g_ucConfData[131]+g_ucConfData[132];    //从网管设ulEsLimit门限//
 	ulSesLimit=256*g_ucConfData[134]+g_ucConfData[135];   //从网管设ulSesLimit门限//
+
 
 	//if((g_ucConfData[136]==0)&&TUALMO&&WP) TUALMO=0;  //IO2=TUALMO  confdata[108]=盘保护模式不保护
 
@@ -1053,7 +1123,7 @@ void InitioSw1021()
 	for(i=0; i<CHIPS_ON_BOARD; i++)
 	{
 		XBYTE[SW1021_CHIP_ADDR(i) + SOFTWARE_RST_REG] = SRST_E1 | SRST_SDH_A | SRST_SDH_B;
-		Delay(10);
+		Delay(1);
 		XBYTE[SW1021_CHIP_ADDR(i) + SOFTWARE_RST_REG] = RST_CANCLE;
 		
 		// TODO: 并行总线时钟选择
@@ -1220,6 +1290,10 @@ void main()
 	ret = checkSW1021Init();
 	if(ret != 0)
 		InitioSw1021();
+	
+	// 使能外部中断3
+	EX3 = 1;
+	PX3 = 0;  // 低优先级
 
 	while (1)
 	{
@@ -1227,7 +1301,8 @@ void main()
 			#ifdef NEED_LP_RFI				
 					XBYTE[0x7fe5] = 1;
 			#else
-					XBYTE[0x7b74] = 1;
+				//	XBYTE[0x7b74] = 1;
+					XBYTE[0x7b79] = 1;
 			#endif
 		#endif
 		

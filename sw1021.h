@@ -46,11 +46,17 @@
 	#define ADLOC		(1 << 1)		/* A 路下行总线时钟丢失 */
 	#define AALOC		(1 << 2)		/* A 路上行总线时钟丢失告警 */
 	
-#define PORT_RST_REG(PID)  (((PID) * 0x20) + 0x20 + (0x20 * ((PID)/7)))   // PID form 0 to 20
+unsigned int code chipOffSetc[21]={
+                0x0020,0x0040,0x0060,0x0080,0x00a0,0x00c0,0x00e0,
+                0x0120,0x0140,0x0160,0x0180,0x01a0,0x01c0,0x01e0,
+                0x0220,0x0240,0x0260,0x0280,0x02a0,0x02c0,0x02e0
+                };
+#define PORT_RST_REG(PID)  (chipOffSetc[PID])   // PID form 0 to 20
+//#define PORT_RST_REG(PID)  (((PID) * 0x20) + 0x20 + (0x20 * ((PID)/7)))   // PID form 0 to 20
 	#define RST_PORT	(1 << 7)
 
-
-#define PORT_CFG_REG(PID)  (((PID) * 0x20) + 0x21 + (0x20 * ((PID)/7)))
+#define PORT_CFG_REG(PID)  (chipOffSetc[PID] + 1)
+//#define PORT_CFG_REG(PID)  (((PID) * 0x20) + 0x21 + (0x20 * ((PID)/7)))
 	#define A_DOWN	(0 << 5)
 	#define B_DOWN	(1 << 5)
 	#define A_UP_DOWN	(2 << 5)
@@ -64,8 +70,9 @@
 	#define RCLKSEL	(1 << 2)		/* 选择再生失踪，默认使用解映射恢复时钟 */
 	#define TAISEN   (1 << 1) 	/* 发送E1线路AIS使能 */
 	#define RAISEN   (1 << 0)   /* 接收E1线路AIS使能  */ 
-
-#define PORT_TEST_REG(PID)  (((PID) * 0x20) + 0x22 + (0x20 * ((PID)/7)))
+								
+#define PORT_TEST_REG(PID)  (chipOffSetc[PID] + 2)
+//#define PORT_TEST_REG(PID)  (((PID) * 0x20) + 0x22 + (0x20 * ((PID)/7)))
 	#define E1CRCEN		(1 << 7)
 	#define E1CRCT		(1 << 6)		/* 检测来自下话总线的数据的CRC , 默认为E1线路数据 */
 	#define	PRBSEN		(1 << 5)		/* 打开伪随机序列发生器 */
@@ -75,7 +82,8 @@
 	#define E1LBK			(1 << 1)		/* 线路侧设备环回 */
 	#define LnLBK			(1 << 0)    /* 线路环回 */
 	
-#define PORT_E1_ALARM_INTERRPUT_MASK_REG(PID)  (((PID) * 0x20) + 0x24 + (0x20 * ((PID)/7)))
+#define PORT_E1_ALARM_INTERRPUT_MASK_REG(PID)  (chipOffSetc[PID] + 4)
+//#define PORT_E1_ALARM_INTERRPUT_MASK_REG(PID)  (((PID) * 0x20) + 0x24 + (0x20 * ((PID)/7)))
 	#define TFFAERRE		(1 << 5)   /* 不屏蔽 上行 FIFO_A 溢出错误告警中断 */
 	#define TFFBERRE		(1 << 4)   /* 不屏蔽 上行 FIFO_B 溢出错误告警中断 */
 	#define RFFERRE		  (1 << 3)   /* 不屏蔽 下行 FIFO   溢出错误告警中断 */
@@ -83,7 +91,9 @@
 	#define E1LOCE  		(1 << 1)   /* 不屏蔽 E1映射时钟丢失产生的中断 */
 	#define E1LOSE		  (1 << 0)   /* 不屏蔽 E1映射数据丢失残生的中断*/
 
-#define PORT_E1_ALARM_REG(PID)  (((PID) * 0x20) + 0x25 + (0x20 * ((PID)/7)))
+
+#define PORT_E1_ALARM_REG(PID)  (chipOffSetc[PID] + 0x05)
+//#define PORT_E1_ALARM_REG(PID)  (((PID) * 0x20) + 0x25 + (0x20 * ((PID)/7)))
 	#define TFFAERR   (1 << 5)	/* 上行方向FIFO_A 溢出错误告警 */
 	#define TFFBERR   (1 << 4)  /* 上行方向FIFO_B 溢出错误告警 */
 	#define RFFERR   (1 << 3)		/* 下行方向FIFO 溢出错误告警 */
@@ -91,8 +101,8 @@
 	#define E1LOC   (1 << 1)		/* E1 映射时钟丢失 */
 	#define E1LOS   (1 << 0)		/* E1 映射数据丢失 */
 
-#define HDB3_CV_REG(PID)  		 (((PID) * 0x20) + 0x26 + (0x20 * ((PID)/7)))
-
+#define HDB3_CV_REG(PID)  		 (chipOffSetc[PID] + 0x06)
+//#define HDB3_CV_REG(PID)  		 (((PID) * 0x20) + 0x26 + (0x20 * ((PID)/7)))
 
 #define  A_BUS_BASE    0x400
 #define  B_BUS_BASE    0x800
@@ -150,25 +160,31 @@
 	#define NOBUSY	(1 << 7)  /* 内部RAM操作完成 */
 	
 	
-	
-#define RXTU12_SLOT_REG(SUB,PID)  (((PID) * 0x20) + 0x20 + (0x20 * ((PID)/7)) + (SUB))
+#define RXTU12_SLOT_REG(SUB,PID)  (chipOffSetc[PID] + (SUB))	
+//#define RXTU12_SLOT_REG(SUB,PID)  (((PID) * 0x20) + 0x20 + (0x20 * ((PID)/7)) + (SUB))
 	#define TRDI_EN		(1 << 7)  /* 屏蔽RDI插入上行通道 */
-#define TXTU12_SLOT_REG(SUB,PID)  (((PID) * 0x20) + 0x21 + (0x20 * ((PID)/7)) + (SUB))
-#define TX_CTRL_REG(SUB,PID)  (((PID) * 0x20) + 0x22 + (0x20 * ((PID)/7)) + (SUB))
+	
+#define TXTU12_SLOT_REG(SUB,PID)  (chipOffSetc[PID] + (SUB) + 1)
+//#define TXTU12_SLOT_REG(SUB,PID)  (((PID) * 0x20) + 0x21 + (0x20 * ((PID)/7)) + (SUB))
+
+#define TX_CTRL_REG(SUB,PID)  (chipOffSetc[PID] + (SUB) + 2)
+//#define TX_CTRL_REG(SUB,PID)  (((PID) * 0x20) + 0x22 + (0x20 * ((PID)/7)) + (SUB))
 	#define AIS_EN   (1 << 1)
 	#define TUNEQ		 (1 << 0)
 
-#define TX_V5_REG(SUB,PID)  (((PID) * 0x20) + 0x23 + (0x20 * ((PID)/7)) + (SUB))
+#define TX_V5_REG(SUB,PID)  (chipOffSetc[PID] + (SUB) + 3)
+//#define TX_V5_REG(SUB,PID)  (((PID) * 0x20) + 0x23 + (0x20 * ((PID)/7)) + (SUB))
 	#define REI_CNF	(1 << 5)
 	#define CRFI		(1 << 4)
 	//#define PLAB_CNF
 	#define RDI_CNF		(1 << 0)
 	//#define TEST_BIP  
 
-#define TX_K4_REG(SUB,PID)  (((PID) * 0x20) + 0x24 + (0x20 * ((PID)/7)) + (SUB))	
+#define TX_K4_REG(SUB,PID)  (chipOffSetc[PID] + (SUB) + 4)
+//#define TX_K4_REG(SUB,PID)  (((PID) * 0x20) + 0x24 + (0x20 * ((PID)/7)) + (SUB))	
 
-
-#define INTERRUPT_ENABLE_REG(SUB,PID)  (((PID) * 0x20) + 0x26 + (0x20 * ((PID)/7)) + (SUB))
+#define INTERRUPT_ENABLE_REG(SUB,PID)  (chipOffSetc[PID] + (SUB) + 6)
+//#define INTERRUPT_ENABLE_REG(SUB,PID)  (((PID) * 0x20) + 0x26 + (0x20 * ((PID)/7)) + (SUB))
 	#define LOPE	(1 << 7)  
 	#define AISE	(1 << 6)
 	#define JUSTE	 (1 << 5)		/* 指针调整时产生中断 */
@@ -178,12 +194,23 @@
 	#define J2_RTIUE   (1 << 1)
 	#define PLME   (1 << 0)
 	
-//#define INTERRUPT_ENABLE_REG2(SUB,PID)  EX_INTERRUPT_ENABLE_REG_##PID(SUB) + 1
-#define INTERRUPT_ENABLE_REG2(SUB,PID)  (((PID) * 0x20) + 0x27 + (0x20 * ((PID)/7)) + (SUB))
+#define INTERRUPT_ENABLE_REG2(SUB,PID)  (chipOffSetc[PID] + (SUB) + 7)
+//#define INTERRUPT_ENABLE_REG2(SUB,PID)  (((PID) * 0x20) + 0x27 + (0x20 * ((PID)/7)) + (SUB))
 	#define NDFE   (1 << 1)
 	#define UNEQE   (1 << 0)
 	
-#define TU12_J2_STATUS_REG(SUB,PID)  (((PID) * 0x20) + 0x29 + (0x20 * ((PID)/7)) + (SUB)) /* 不带锁存， 实时结果 */
+#define RCV_INSET_AIS_REG(SUB,PID)  (chipOffSetc[PID] + (SUB) + 8)
+//#define RCV_INSET_AIS_REG(SUB,PID)  (((PID) * 0x20) + 0x28 + (0x20 * ((PID)/7)) + (SUB))
+	#define LOPAISE   (1 << 6)
+	#define AISAISE   (1 << 5)
+	#define LOMAISE   (1 << 4)
+	#define UNEQAISE   (1 << 3)
+	#define PLMAISE   (1 << 2)
+	#define J2RTIME   (1 << 1)
+	#define J2RTIUE   (1 << 0)
+
+#define TU12_J2_STATUS_REG(SUB,PID)  (chipOffSetc[PID] + (SUB) + 9) /* 不带锁存， 实时结果 */
+//#define TU12_J2_STATUS_REG(SUB,PID)  (((PID) * 0x20) + 0x29 + (0x20 * ((PID)/7)) + (SUB)) /* 不带锁存， 实时结果 */
 	#define LOPV   (1 << 7)			/* 指针丢失 */
 	#define AISV   (1 << 6)			/* 芯片进入AIS 状态 */
 	#define RDIV   (1 << 5)			/* */
@@ -194,7 +221,8 @@
 	#define PLMV   (1 << 0)			/* 标记适配告警 SLM ? */
 	
 	
-#define TU12_J2_STATUS_REG2(SUB,PID)  (((PID) * 0x20) + 0x2A + (0x20 * ((PID)/7)) + (SUB))   /* 带锁存，读后清除 */
+#define TU12_J2_STATUS_REG2(SUB,PID)  (chipOffSetc[PID] + (SUB) + 0x0A)   /* 带锁存，读后清除 */
+//#define TU12_J2_STATUS_REG2(SUB,PID)  (((PID) * 0x20) + 0x2A + (0x20 * ((PID)/7)) + (SUB))   /* 带锁存，读后清除 */
 	#define LOPI   (1 << 7)			/* 指针丢失 */ 
 	#define AISI   (1 << 6)			/* 芯片进入AIS 状态 */
 	#define RDII   (1 << 5)			/* */
@@ -204,12 +232,16 @@
 	#define UNEQI   (1 << 1)			/* */
 	#define PLMI   (1 << 0)			/* 标记适配告警 SLM ? */
 
-#define RX_K4_REG(SUB,PID)  (((PID) * 0x20) + 0x2C + (0x20 * ((PID)/7)) + (SUB))	
+#define RX_K4_REG(SUB,PID)  (chipOffSetc[PID] + (SUB) + 0x0C)
+//#define RX_K4_REG(SUB,PID)  (((PID) * 0x20) + 0x2C + (0x20 * ((PID)/7)) + (SUB))	
 
 
-#define BIPERR_COUNTER_REG(SUB,PID)  (((PID) * 0x20) + 0x2E + (0x20 * ((PID)/7)) + (SUB)) /* 16 位寄存器， 需要特殊操作，见手册  */
+#define BIPERR_COUNTER_REG(SUB,PID)  (chipOffSetc[PID] + (SUB) + 0x0E) /* 16 位寄存器， 需要特殊操作，见手册  */
+//#define BIPERR_COUNTER_REG(SUB,PID)  (((PID) * 0x20) + 0x2E + (0x20 * ((PID)/7)) + (SUB)) /* 16 位寄存器， 需要特殊操作，见手册  */
 
-#define REI_COUNTER_REG(SUB,PID)  (((PID) * 0x20) + 0x30 + (0x20 * ((PID)/7)) + (SUB))   /* 16 位寄存器， 需要特殊操作，见手册  */
+
+#define REI_COUNTER_REG(SUB,PID)  (chipOffSetc[PID] + (SUB) + 0x10)   /* 16 位寄存器， 需要特殊操作，见手册  */
+//#define REI_COUNTER_REG(SUB,PID)  (((PID) * 0x20) + 0x30 + (0x20 * ((PID)/7)) + (SUB))   /* 16 位寄存器， 需要特殊操作，见手册  */
 
 
 #endif
