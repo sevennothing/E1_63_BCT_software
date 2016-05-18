@@ -134,10 +134,27 @@
         <SetRegEntry>
           <Number>0</Number>
           <Key>DLGDP51</Key>
-          <Name>(98=888,232,1221,516,0)(82=225,186,423,291,0)(83=-1,-1,-1,-1,0)(84=255,218,453,323,0)(85=270,234,468,339,0)(99=1015,248,1218,537,0)(101=-1,-1,-1,-1,0)(91=-1,-1,-1,-1,0)(92=-1,-1,-1,-1,0)(94=-1,-1,-1,-1,0)(104=-1,-1,-1,-1,0)(5065=514,298,736,577,0)</Name>
+          <Name>(98=1033,185,1366,469,0)(82=225,186,423,291,0)(83=-1,-1,-1,-1,0)(84=255,218,453,323,0)(85=270,234,468,339,0)(99=1015,248,1218,537,0)(101=-1,-1,-1,-1,0)(91=-1,-1,-1,-1,0)(92=-1,-1,-1,-1,0)(94=-1,-1,-1,-1,0)(104=-1,-1,-1,-1,0)(5065=514,298,736,577,0)</Name>
         </SetRegEntry>
       </TargetDriverDllRegistry>
-      <Breakpoint/>
+      <Breakpoint>
+        <Bp>
+          <Number>0</Number>
+          <Type>0</Type>
+          <LineNumber>685</LineNumber>
+          <EnabledFlag>1</EnabledFlag>
+          <Address>-16747868</Address>
+          <ByteObject>0</ByteObject>
+          <HtxType>0</HtxType>
+          <ManyObjects>0</ManyObjects>
+          <SizeOfObject>0</SizeOfObject>
+          <BreakByAccess>0</BreakByAccess>
+          <BreakIfRCount>1</BreakIfRCount>
+          <Filename>GF2488-01F1-E1-RST.C</Filename>
+          <ExecCommand></ExecCommand>
+          <Expression></Expression>
+        </Bp>
+      </Breakpoint>
       <WatchWindow1>
         <Ww>
           <count>0</count>
@@ -159,12 +176,17 @@
           <WinNumber>1</WinNumber>
           <ItemText>P3</ItemText>
         </Ww>
+        <Ww>
+          <count>4</count>
+          <WinNumber>1</WinNumber>
+          <ItemText>ACT</ItemText>
+        </Ww>
       </WatchWindow1>
       <MemoryWindow1>
         <Mm>
           <WinNumber>1</WinNumber>
           <SubType>0</SubType>
-          <ItemText>x:0x7b42</ItemText>
+          <ItemText>X:0x0000</ItemText>
           <AccSizeX>0</AccSizeX>
         </Mm>
       </MemoryWindow1>

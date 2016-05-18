@@ -144,8 +144,11 @@ unsigned int code chipOffSetc[21]={
 	#define RW_SEL		(1 << 7)	/* 写期望J2*/
 	//RJ2SLOT
 #define J2_RX_J2TYPE_CTRL_REG(SUB)	((SUB) + 8)
-	#define EXPECT_J2  ( 3<< 6)
+	#define ALLOW_RX_J2	(1 << 6)
+	#define RECEV_J2		(2 << 6)
+	#define EXPECT_J2   (3 << 6)
 	//J2RNUM		(0 ~15)
+	
 #define J2_RAM_STATUS_REG(SUB)	((SUB)+9)
 	#define READY    1			/* 内部RAM操作完成 */
 	

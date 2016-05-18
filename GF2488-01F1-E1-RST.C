@@ -68,6 +68,7 @@ extern int sprintf(char *, const char *, ...);
 
 #define RSTB IO0
 #define TUALMO IO2
+#define HAPPAN_SWITCH IO4   // 外部中断2,上升沿中断
 #define TUXAB IO5 //TUXAB为主备交叉时钟盘XCU有效指示信号,主用XCU有效时TUXAB=0,备用XCU有效TUXAB=1
 #define WP IO6     //E1-63A盘在正常槽位时WP=1,在保护槽位时WP=0//
 #define TUSWTI IO7 //本盘almnumber大于一定值时,TUALMO=1,XCU盘收到TUALMO=1时,产生TUSWTI=0//
@@ -165,6 +166,31 @@ static void writeExpectJ2(char chip, char witchJ2, char Slot, char j2, char busB
 			break;
 		//Delay(1);
 	}
+}
+
+static void readRxJ2(char chip, char witchJ2, char Slot, char *j2, char busB)
+{
+	int copOk = 0;
+	int busBase = A_BUS_BASE;
+	int i = 5;
+	if(busB) 
+		busBase = B_BUS_BASE;
+	
+	XBYTE[SW1021_CHIP_ADDR(chip) + J2_RX_J2TYPE_CTRL_REG(busBase)] = RECEV_J2 |  witchJ2;
+	XBYTE[SW1021_CHIP_ADDR(chip) + J2_RX_CTRL_REG(busBase)] =  Slot;
+	while(!copOk){
+		copOk = XBYTE[SW1021_CHIP_ADDR(chip) + J2_RAM_STATUS_REG(busBase)] & READY;
+		i--;
+		if(i == 0)
+			break;
+		//Delay(1);
+	}
+	if(copOk){
+		*j2 = XBYTE[SW1021_CHIP_ADDR(chip) + J2_RX_DATA_REG(busBase)];
+	}else{
+		*j2 = -1;
+	}
+	
 }
 
 /*****************************************************************
@@ -593,6 +619,18 @@ void UserFunc() using 1
 	unsigned int chip  = SW1021;
 	static int docnt = 0;
 	if(g_haveTux){
+		if(docnt == 0){
+			XBYTE[SW1021 + SOFTWARE_RST_REG] = SRST_E1;
+			XBYTE[SW1021 + SOFTWARE_RST_REG] = RST_CANCLE;
+			
+			XBYTE[SW1021 + 0x1000 + SOFTWARE_RST_REG] = SRST_E1;
+			XBYTE[SW1021 + 0x1000 + SOFTWARE_RST_REG] = RST_CANCLE;
+			
+			XBYTE[SW1021 + 0x2000 + SOFTWARE_RST_REG] = SRST_E1;
+			XBYTE[SW1021 + 0x2000 + SOFTWARE_RST_REG] = RST_CANCLE;
+			docnt++;
+			return;
+		}
 		if(docnt > 10){
 			docnt = 0;
 			g_haveTux = 0;
@@ -626,7 +664,7 @@ void UserFunc() using 1
 	return;
 }
 
-
+/*
 //static void ChecktuxAB (void) interrupt 9 using 3
 static void ChecktuxAB (void) interrupt 9
 {
@@ -639,7 +677,19 @@ static void ChecktuxAB (void) interrupt 9
 	EX3 = 1;
 	return;
 }
+*/
 
+static void happenSwich (void) interrupt 8
+{
+
+	EX2 = 0;
+	EXIF &= 0xEF;
+	g_haveTux = 1;
+
+
+	EX2 = 1;
+	return;
+}
 
 /*****************************************************************
 ** 函数名:CONF_SET
@@ -812,8 +862,9 @@ void ConfSet(void)
 ****************************************************************/
 void UserHdlc(void)
 {
-	unsigned char i,m,n,temp;
+	unsigned char i,j,m,n,temp;
 	unsigned int addr;
+	char val;
 
 	if (g_ucHdlcBuf[CMD_TYPE]==COMM_CATA)
 	{
@@ -871,7 +922,26 @@ void UserHdlc(void)
 						g_ucHdlcBuf[10]=0x00;
 					}
 			}
-
+			else if(g_ucHdlcBuf[6] == 0x45){  /* 请求报告J字节等辅助信息 */
+				int addr = 0;
+				g_ucHdlcBuf[10]=0x00;
+				g_ucHdlcBuf[11]=0x00;
+				g_ucHdlcBuf[12]=0x04;
+				g_ucHdlcBuf[13]=0x6e;
+			
+				addr = 14;
+				for(i=0; i<63; i++){
+					m = i/21;
+					n = i%21;
+					g_ucHdlcBuf[addr++] = 0x02; //J2
+					g_ucHdlcBuf[addr++] = i;   //TODO: 确认支路号是从0开始还是从1开始
+					for(j=0;j<16;j++){
+						readRxJ2(m, j, slot[i], &val, 0);
+						g_ucHdlcBuf[addr++] = val; //J2 value
+					}					
+				}			
+				
+			}
 			break;
 
 		case 0x77:                /**透明帧命令**/
@@ -897,6 +967,7 @@ void UserHdlc(void)
 				g_ucHdlcBuf[14+i]=XBYTE[addr+i]; //从commbuf[14]，commbuf[15]的地址开始读取16个字节数据//
 			break;
 
+		
 		case 0X99:
 			while(1)
 			{;}
@@ -1291,9 +1362,9 @@ void main()
 	if(ret != 0)
 		InitioSw1021();
 	
-	// 使能外部中断3
-	EX3 = 1;
-	PX3 = 0;  // 低优先级
+	// 使能外部中断2
+	EX2 = 1;
+	PX2 = 0;  // 低优先级
 
 	while (1)
 	{
@@ -1302,7 +1373,7 @@ void main()
 					XBYTE[0x7fe5] = 1;
 			#else
 				//	XBYTE[0x7b74] = 1;
-					XBYTE[0x7b79] = 1;
+					XBYTE[0x7b7A] = 1;
 			#endif
 		#endif
 		
