@@ -20,7 +20,7 @@
 //#define  NEED_LP_RFI   /**  !!! 单盘起不来了  */
 #define AIS_CONDITIONS      /** 与 AIS_CONDITIONS_AUTO 二选一  */
 //#define AIS_CONDITIONS_AUTO
-#define SKIP_DEBUG_CHECK
+//#define SKIP_DEBUG_CHECK
 
 #define UASNUM  	63      	//要计算误码的线路数63//
 #define LINENUM  	64      	/*告警线路数为64*/
@@ -53,11 +53,11 @@
 
 char code SysName[]="GF2488-01F";
 char code BoardName[]="E1-63A";
-char code BoardSn[]="WKE2.170.609R1B";
-char code SoftVer[]="R170609R1B/01F    ";
+char code BoardSn[]="WKE2.202.202R1A";
+char code SoftVer[]="R202202R1A/01F    ";
 
-char code PcbSn[]="WKE7.822.828R1B";
-char code PcbTime[]="2004 05 02";
+char code PcbSn[]="WKE7.201.546R1A";
+char code PcbTime[]="2016 05 20";
 
 char code BoardSoftVer[]="RP0100            ";
 
@@ -84,7 +84,7 @@ unsigned int ulEsLimit,ulSesLimit;
 unsigned int sw1021Chip;
 unsigned int N1000[63],BIP[63],BIP_2_1S[63],BIP_2_1000S[63];
 unsigned char actnumber,almnumber,first_conf;
-unsigned char g_haveTux;
+//unsigned char g_haveTux;
 /*
 code unsigned char slot[64]={1,22,43,4,25,46,7,
 28,49,10,31,52,13,34,
@@ -614,6 +614,7 @@ void GetData()
 ****************************************************************/
 void UserFunc() using 1
 {
+	#if 0
 	int i,j;
 	int tmp;
 	unsigned int chip  = SW1021;
@@ -631,7 +632,7 @@ void UserFunc() using 1
 			docnt++;
 			return;
 		}
-		if(docnt > 10){
+		if(docnt > 2){
 			docnt = 0;
 			g_haveTux = 0;
 		}
@@ -660,7 +661,7 @@ void UserFunc() using 1
 		}
 		docnt++;
 	}
-	
+	#endif
 	return;
 }
 
@@ -684,8 +685,17 @@ static void happenSwich (void) interrupt 8
 
 	EX2 = 0;
 	EXIF &= 0xEF;
-	g_haveTux = 1;
-
+	//g_haveTux = 1;
+	
+	XBYTE[SW1021 + SOFTWARE_RST_REG] = SRST_E1;
+	XBYTE[SW1021 + SOFTWARE_RST_REG] = RST_CANCLE;
+					
+	XBYTE[SW1021 + 0x1000 + SOFTWARE_RST_REG] = SRST_E1;
+	XBYTE[SW1021 + 0x1000 + SOFTWARE_RST_REG] = RST_CANCLE;
+					
+	XBYTE[SW1021 + 0x2000 + SOFTWARE_RST_REG] = SRST_E1;
+	XBYTE[SW1021 + 0x2000 + SOFTWARE_RST_REG] = RST_CANCLE;
+	
 
 	EX2 = 1;
 	return;
@@ -939,10 +949,34 @@ void UserHdlc(void)
 						readRxJ2(m, j, slot[i], &val, 0);
 						g_ucHdlcBuf[addr++] = val; //J2 value
 					}					
-				}			
+				}	
+				g_ucHdlcBuf[10]=0x00;				
 				
 			}
 			break;
+		case 0x20:
+			 if(g_ucHdlcBuf[6] == 0x09){  /* 大网管请求报告J字节等辅助信息 */
+				int addr = 0;
+				g_ucHdlcBuf[10]=0x00;
+				g_ucHdlcBuf[11]=0x00;
+				g_ucHdlcBuf[12]=0x04;
+				g_ucHdlcBuf[13]=0x6e;
+			
+				addr = 14;
+				for(i=0; i<63; i++){
+					m = i/21;
+					n = i%21;
+					g_ucHdlcBuf[addr++] = 0x02; //J2
+					g_ucHdlcBuf[addr++] = i;   //TODO: 确认支路号是从0开始还是从1开始
+					for(j=0;j<16;j++){
+						readRxJ2(m, j, slot[i], &val, 0);
+						g_ucHdlcBuf[addr++] = val; //J2 value
+					}					
+				}
+				g_ucHdlcBuf[10]=0x00;					
+				
+			}
+		break;
 
 		case 0x77:                /**透明帧命令**/
 			addr=256*g_ucHdlcBuf[14]+g_ucHdlcBuf[15];  // commbuf[14]，commbuf[15]所存放 的 地址
@@ -1373,7 +1407,7 @@ void main()
 					XBYTE[0x7fe5] = 1;
 			#else
 				//	XBYTE[0x7b74] = 1;
-					XBYTE[0x7b7A] = 1;
+					XBYTE[0x7b77] = 1;
 			#endif
 		#endif
 		
