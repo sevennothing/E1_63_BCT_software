@@ -77,6 +77,10 @@ extern int sprintf(char *, const char *, ...);
 #define P5VI2 IO10
 #define DZBI1 IO11
 #define DZBI2 IO12
+
+// 仅用于调试（解决全部线路环回缺陷问题）
+#define ALERT_LOOPL IO3
+
 extern unsigned char g_AllClrFlag;
 extern unsigned char g_LampEn;
 unsigned int ulEsLimit,ulSesLimit;
@@ -291,10 +295,14 @@ void GetData()
 			XBYTE[sw1021Chip+REI_COUNTER_REG(A_BUS_BASE, n)] = 0x00;
 			LPFEBE = XBYTE[sw1021Chip+REI_COUNTER_REG(A_BUS_BASE, n)] + (XBYTE[sw1021Chip+REI_COUNTER_REG(A_BUS_BASE, n) + 1] * 256); //REI(FEBE)计数值
 			
-			tmp = XBYTE[sw1021Chip + PORT_TEST_REG(n)];
-						
-			LOOPL =  tmp & E1LBK;
+			
+			tmp = XBYTE[sw1021Chip + PORT_TEST_REG(n)];	
 			LOOP = 	 tmp & LnLBK;
+			if(ALERT_LOOPL == 0){
+				LOOPL = 1;
+			}else{
+				LOOPL =  tmp & E1LBK;
+			}
 			
 			if((g_ucConfData[200+mi]&(0x01<<ni))==0)
 			{
@@ -739,10 +747,12 @@ void ConfSet(void)
 
 		if(g_ucConfData[64+i]==0){  // 支路关闭
 			// 上下话强发AIS
+			if(ALERT_LOOPL) {
 			//XBYTE[sw1021Chip + TX_CTRL_REG(B_BUS_BASE,n)] = AIS_EN;	
 			temp = XBYTE[sw1021Chip + PORT_CFG_REG(n)];
 			XBYTE[sw1021Chip + PORT_CFG_REG(n)] = temp | TAISEN | RAISEN;	
 			XBYTE[sw1021Chip + TX_V5_REG(A_BUS_BASE,n)] = 0x00;
+			}
 						
 			g_ucState[78+i]=0;     
 			g_ucLineMask[i]=1;
@@ -916,21 +926,56 @@ void UserHdlc(void)
 			{ // 线路环回 
 				if(((g_usRxDataLen)==0)||((g_usRxDataLen)>63)) 
 					g_ucHdlcBuf[10]=0x80; 
-				else			            
-					for(i=0;i<(g_usRxDataLen);i++)
-					{
-						temp=g_ucHdlcBuf[14+i]-1;
-						m=temp/21;
-						n=temp%21;
-						
-						sw1021Chip = SW1021_CHIP_ADDR(m);
+				else{
+					// 判断是否为全部线路环回
+					if(g_usRxDataLen == 63){
 						if(g_ucHdlcBuf[7]==0x01){
-							XBYTE[sw1021Chip + PORT_TEST_REG(n)] |= E1LBK;
+							ALERT_LOOPL = 0;
+							for(i=0; i<63; i++){
+									m=i/21;
+									n=i%21;
+								  sw1021Chip = SW1021_CHIP_ADDR(m);
+								  if(g_ucState[78+i] == 0){
+										// 未打开该支路，执行打开
+										XBYTE[sw1021Chip + PORT_CFG_REG(n)] = A_UP_DOWN | RnEN;
+									  XBYTE[sw1021Chip + TX_V5_REG(A_BUS_BASE,n)] = (0x02 << 1);  // 注意信号标记值得配置
+									}
+							}
+							
 						}else{
-							XBYTE[sw1021Chip + PORT_TEST_REG(n)] &= (~E1LBK);
+							ALERT_LOOPL = 1;
+							for(i=0; i<63; i++){
+									m=i/21;
+									n=i%21;
+								  sw1021Chip = SW1021_CHIP_ADDR(m);
+									XBYTE[sw1021Chip + PORT_TEST_REG(n)] &= (~E1LBK);
+								  if(g_ucState[78+i] == 0){
+										// 未打开该支路，执行关闭
+										temp = XBYTE[sw1021Chip + PORT_CFG_REG(n)];
+										XBYTE[sw1021Chip + PORT_CFG_REG(n)] = temp | TAISEN | RAISEN;	
+										XBYTE[sw1021Chip + TX_V5_REG(A_BUS_BASE,n)] = 0x00;
+									}
+							}
 						}
 						g_ucHdlcBuf[10]=0x00;
+					}else{
+					
+						for(i=0;i<(g_usRxDataLen);i++)
+						{
+							temp=g_ucHdlcBuf[14+i]-1;
+							m=temp/21;
+							n=temp%21;
+							
+							sw1021Chip = SW1021_CHIP_ADDR(m);
+							if(g_ucHdlcBuf[7]==0x01){
+								XBYTE[sw1021Chip + PORT_TEST_REG(n)] |= E1LBK;
+							}else{
+								XBYTE[sw1021Chip + PORT_TEST_REG(n)] &= (~E1LBK);
+							}
+							g_ucHdlcBuf[10]=0x00;
+						}
 					}
+				}
 			}
 			else if(g_ucHdlcBuf[6] == 0x45){  /* 请求报告J字节等辅助信息 */
 				int addr = 0;
@@ -1388,13 +1433,14 @@ void main()
 {   
 	unsigned char i;  
 	int ret = 0;
-	//Delay(50);
-
-	SelfConf(); 
+	 //Delay(50);
 	
+	SelfConf(); 
 	ret = checkSW1021Init();
 	if(ret != 0)
 		InitioSw1021();
+	
+
 	
 	// 使能外部中断2
 	EX2 = 1;
