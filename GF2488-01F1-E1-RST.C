@@ -18,9 +18,10 @@
 ** 版  本：1.0
 ********************************************************************/
 //#define  NEED_LP_RFI   /**  !!! 单盘起不来了  */
-#define AIS_CONDITIONS      /** 与 AIS_CONDITIONS_AUTO 二选一  */
+//#define AIS_CONDITIONS      /** 与 AIS_CONDITIONS_AUTO 二选一  */
 //#define AIS_CONDITIONS_AUTO
 //#define SKIP_DEBUG_CHECK
+#define PPIAIS_SUPPORT
 
 #define UASNUM  	63      	//要计算误码的线路数63//
 #define LINENUM  	64      	/*告警线路数为64*/
@@ -132,6 +133,8 @@ code unsigned char slot[64]={0x00,0x07,0x0e,0x01,0x08,0x0f,0x02,
                 };
 
 		
+//void do_rst_fifo(int trib);
+								
 static void writeTxJ2(char chip, char witchJ2, char Slot, char j2, char busB)
 {
 	int copOk = 0;
@@ -330,9 +333,11 @@ void GetData()
 				g_stuAlm[i*(ALMTYPENUM-3)].ucState=0;
 				if(PPILOS) g_stuAlm[i*(ALMTYPENUM-3)+6].ucState=0;	 			       
 				else  g_stuAlm[i*(ALMTYPENUM-3)+6].ucState=1;
-			}	 			       
-			//if(PPIAIS) g_stuAlm[i*(ALMTYPENUM-3)+8].ucState=1;	 			       
-			//else g_stuAlm[i*(ALMTYPENUM-3)+8].ucState=0;
+			}	
+#ifdef PPIAIS_SUPPORT			
+			if(PPIAIS) g_stuAlm[i*(ALMTYPENUM-3)+8].ucState=1;	 			       
+			else g_stuAlm[i*(ALMTYPENUM-3)+8].ucState=0;
+#endif
 			if(TULOP) g_stuAlm[i*(ALMTYPENUM-3)+1].ucState=1;	 			       
 			else g_stuAlm[i*(ALMTYPENUM-3)+1].ucState=0;	
 			if(TUAIS) g_stuAlm[i*(ALMTYPENUM-3)+5].ucState=1;	 			       
@@ -485,7 +490,7 @@ void GetData()
 			g_stuPm[i*PMTYPENUM+5].Value.usint=g_usiUas[i];             //UAS_LP性能的采集
 			g_stuPm[i*PMTYPENUM+6].Value.usint=g_usiCses[i];            //cses_lp性能的采集
 
-
+#ifndef PPIAIS_SUPPORT
 			/******************************************************************************/
 			if(g_stuAlm[i*(ALMTYPENUM-3)+5].ucState||g_stuAlm[i*(ALMTYPENUM-3)+1].ucState)
 			{
@@ -563,7 +568,7 @@ void GetData()
 			}
 
 		/********************************************************************************/
-
+#endif
 		}
 
 		g_SecondFlag=0;      //秒标识清?
@@ -769,7 +774,8 @@ void ConfSet(void)
 				g_ucState[78+i]=1;
 				g_ucLineMask[i]=0; 
 				g_ucState[141+i]=0;
-			}  	     	
+			}
+			//do_rst_fifo(i);			
 		}
 		XBYTE[sw1021Chip + TX_K4_REG(A_BUS_BASE,n)]= g_ucConfData[263+4*i+2];               // K4 发 
 		XBYTE[sw1021Chip + TX_K4_REG(B_BUS_BASE,n)]= g_ucConfData[263+4*i+2];               // K4 发 
@@ -829,12 +835,23 @@ void ConfSet(void)
 		 {  	
 				if(g_ucConfData[ilong]==g_ucAlmCode[j])   //从网管设告警屏蔽//
 				{
-				 g_ucAlmMask[j]=1;   	   	                      
+				 g_ucAlmMask[j]=1;  
+         if(j == 9){  // LP_TIM
+						//禁止RDI 回插 2016-07-15
+					  for(i=0; i<CHIPS_ON_BOARD; i++){
+							XBYTE[SW1021_CHIP_ADDR(i) + RDI_RFI_CTRL_REG(A_BUS_BASE)] = MREI_AUTO | AISV_RDIEN | LOPV_RDIEN | LOMV_RDIEN | UNEQV_RDIEN | RTIUV_RDIEN;
+						}
+				 }					
 				 break; 		
+				}else{
+				  g_ucAlmMask[j]=0;
+					if(j == 9){  // LP_TIM
+						//启用RDI 回插 2016-07-15
+						for(i=0; i<CHIPS_ON_BOARD; i++){
+							XBYTE[SW1021_CHIP_ADDR(i) + RDI_RFI_CTRL_REG(A_BUS_BASE)] = MREI_AUTO | AISV_RDIEN | LOPV_RDIEN | LOMV_RDIEN | UNEQV_RDIEN | RTIMV_RDIEN | RTIUV_RDIEN;
+						}
+					}
 				}
-				else
-				g_ucAlmMask[j]=0;
-
 		 }
 	}      
 										
@@ -1168,7 +1185,9 @@ void SelfConf()
 	g_ucAlmCode[2]=0x22;                        /*LP_SLM*/
 	g_ucAlmCode[3]=0x20;                        /*LP_RDI*/
 	g_ucAlmCode[4]=0x24;                        /*LP_UNEQ*/
-	//g_ucAlmCode[8]=0x04;                        /*PPI_AIS*/
+#ifdef PPIAIS_SUPPORT
+	g_ucAlmCode[8]=0x04;                        /*PPI_AIS*/
+#endif
 	g_ucAlmCode[5]=0x02;                        /*TU_AIS*/
 #ifdef NEED_LP_RFI
 	g_ucAlmCode[15]=0x0c;                        /*LP_RFI*/
@@ -1182,7 +1201,9 @@ void SelfConf()
 	g_ucAlmCode[13]=0x05;                       //5VI1电源故障告警//
 	g_ucAlmCode[14]=0x06;                       //5VI2电源故障告警//
 	g_ucAlmCode[6]=0x07;                 //trafic-onload//
+#ifndef PPIAIS_SUPPORT
 	g_ucAlmCode[8]=0x08;                /*LP_SD*/
+#endif
 
 	g_ucPmCode[0]=0x08;                   /*BBE_LP*/
 	g_ucPmCode[1]=0x02;                   /*ES_LP*/
@@ -1190,8 +1211,8 @@ void SelfConf()
 	g_ucPmCode[3]=0x07;                   /*REI_LP*/
 	g_ucPmCode[4]=0x0b;                   /*HDB3CV*/
 	//g_ucPmCode[5]=0x06;                 /*UAS_LP*/
-	g_ucPmCode[5]=0x0c;                   /*UAS_LP*/
-	g_ucPmCode[6]=0xa2;                   /*CSES_LP*/
+	//g_ucPmCode[5]=0x0c;                   /*UAS_LP*/     //2016-07-19 烽火要求关闭
+	//g_ucPmCode[6]=0xa2;                   /*CSES_LP*/
 
 	g_ucAlmType[0]=0;		/*almtype：0急告；4非急告；8状态量*/
 	g_ucAlmType[1]=0;
@@ -1286,6 +1307,7 @@ void InitioSw1021()
 		XBYTE[SW1021_CHIP_ADDR(i) + SOMESET_REG(A_BUS_BASE)] = BLKBIP_BLOCK;  // BIP-2按块进行校验并计数
 		
 		XBYTE[SW1021_CHIP_ADDR(i) + RDI_RFI_CTRL_REG(A_BUS_BASE)] = MREI_AUTO | AISV_RDIEN | LOPV_RDIEN | LOMV_RDIEN | UNEQV_RDIEN | PLMV_RDIEN | RTIMV_RDIEN | RTIUV_RDIEN;
+		//XBYTE[SW1021_CHIP_ADDR(i) + RDI_RFI_CTRL_REG(A_BUS_BASE)] = MREI_AUTO | AISV_RDIEN | LOPV_RDIEN | LOMV_RDIEN | UNEQV_RDIEN | PLMV_RDIEN | RTIUV_RDIEN;
 		
 		// 上下话数据总线均选择偶校验
 		XBYTE[SW1021_CHIP_ADDR(i) + SDH_CTRL_REG(A_BUS_BASE)] = UP_DELAY_2;
@@ -1416,6 +1438,35 @@ quit:
 	return ret;
 }
 
+/*
+void do_rst_fifo_all(void)
+{
+	XBYTE[SW1021 + SOFTWARE_RST_REG] = SRST_E1;
+	XBYTE[SW1021 + SOFTWARE_RST_REG] = RST_CANCLE;
+					
+	XBYTE[SW1021 + 0x1000 + SOFTWARE_RST_REG] = SRST_E1;
+	XBYTE[SW1021 + 0x1000 + SOFTWARE_RST_REG] = RST_CANCLE;
+					
+	XBYTE[SW1021 + 0x2000 + SOFTWARE_RST_REG] = SRST_E1;
+	XBYTE[SW1021 + 0x2000 + SOFTWARE_RST_REG] = RST_CANCLE;
+	
+	
+}
+void do_rst_fifo(int trib)
+{
+	if(trib/21 == 0){
+		XBYTE[SW1021 + PORT_RST_REG(trib)] = RST_PORT;
+		XBYTE[SW1021 + PORT_RST_REG(trib)] = RST_CANCLE;
+	}else if(trib/21 == 1){	
+		XBYTE[SW1021 + 0x1000 + PORT_RST_REG(trib)] = RST_PORT;
+		XBYTE[SW1021 + 0x1000 + PORT_RST_REG(trib)] = RST_CANCLE;
+	}else if(trib/21 == 2){			
+		XBYTE[SW1021 + 0x2000 + PORT_RST_REG(trib)] = RST_PORT;
+		XBYTE[SW1021 + 0x2000 + PORT_RST_REG(trib)] = RST_CANCLE;
+	}
+}
+*/
+
 /*****************************************************************
 ** 函数名:MAIN
 ** 输　入: 无
@@ -1437,8 +1488,10 @@ void main()
 	
 	SelfConf(); 
 	ret = checkSW1021Init();
-	if(ret != 0)
+	if(ret != 0) {
 		InitioSw1021();
+		//do_rst_fifo_all();
+	}
 	
 
 	
@@ -1467,6 +1520,7 @@ void main()
 			SelfConf(); 
 			InitioSw1021();
 			ConfSet();	
+			//do_rst_fifo_all();
 		}
 	
 		GetData();
